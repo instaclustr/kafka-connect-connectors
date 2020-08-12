@@ -16,7 +16,7 @@
     </modules>
 
     <properties>
-        <kafka.version>2.5.1</kafka.version>
+        <kafka.version>2.3.1</kafka.version>
         <junit.version>4.13</junit.version>
         <slf4j.version>1.7.12</slf4j.version>
     </properties>
@@ -45,11 +45,6 @@
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>20.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.mockito/mockito-core -->
         <dependency>
