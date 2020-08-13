@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -139,9 +140,10 @@ public class AwsStorageSourceTask extends SourceTask {
             } catch (InterruptedException e) {
                 log.info("Thread interrupted in poll. Shutting down", e);
                 Thread.currentThread().interrupt();
-            } catch (AmazonClientException exception) {
-                if (!exception.isRetryable()) {
-                    throw exception;
+            } catch (ExecutionException exception) {
+                String message = exception.getMessage();
+                if (message.equals("isNotRetryable")) {
+                    throw new AmazonClientException(exception);
                 } else {
                     log.warn("Retryable S3 service exception while reading from s3", exception);
                     if (topicPartition != null) {

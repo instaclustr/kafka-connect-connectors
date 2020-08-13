@@ -1,5 +1,6 @@
 package com.instaclustr.kafka.connect.s3.source;
 
+import com.amazonaws.AmazonClientException;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.instaclustr.kafka.connect.s3.AwsConnectorStringFormats;
@@ -12,6 +13,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -62,7 +64,7 @@ public class TopicPartitionSegmentParser {
         this.topicPrefix = topicPrefix;
         this.targetTopic = AwsConnectorStringFormats.generateTargetTopic(topicPrefix, topic);
         this.singleThreadExecutor = Executors.newSingleThreadExecutor();
-        this.timeLimiter = new SimpleTimeLimiter(this.singleThreadExecutor);
+        this.timeLimiter = SimpleTimeLimiter.create(this.singleThreadExecutor);
     }
 
     public void closeResources() throws IOException, InterruptedException {
@@ -71,7 +73,7 @@ public class TopicPartitionSegmentParser {
         this.singleThreadExecutor.awaitTermination(5L, TimeUnit.SECONDS);
     }
 
-    private SourceRecord getNextRecord() throws IOException { //blocking call
+    private SourceRecord getNextRecord() throws IOException, ExecutionException { //blocking call
         try {
             if (recordFormat == null) {
                 int version = dataInputStream.readInt();
@@ -92,6 +94,12 @@ public class TopicPartitionSegmentParser {
             sourceOffset.put("s3ObjectKey", s3ObjectKey);
 
             return recordFormat.readRecord(dataInputStream, sourcePartition, sourceOffset, this.targetTopic, this.partition);
+        } catch (AmazonClientException e) {
+            if (!e.isRetryable()) {
+                throw new ExecutionException ("isNotRetryable", e);
+            } else {
+                throw new ExecutionException ("isRetryable", e);
+            }
         } catch (EOFException e) {
             return null;
         }
@@ -99,7 +107,7 @@ public class TopicPartitionSegmentParser {
 
     public SourceRecord getNextRecord(Long time, TimeUnit units) throws Exception {
         try {
-            return this.timeLimiter.callWithTimeout(this::getNextRecord, time, units, true);
+            return this.timeLimiter.callWithTimeout(this::getNextRecord, time, units);
         } catch (Exception e) {
             this.closeResources(); //not possible to read from this stream after a timeout as read positions gets messed up
             throw e;
