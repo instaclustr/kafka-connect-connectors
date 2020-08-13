@@ -6,7 +6,7 @@
 
     <groupId>com.instaclustr.kafkaconnect</groupId>
     <artifactId>instaclustr-connectors</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.1</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -16,7 +16,7 @@
     </modules>
 
     <properties>
-        <kafka.version>2.3.1</kafka.version>
+        <kafka.version>2.5.1</kafka.version>
         <junit.version>4.13</junit.version>
         <slf4j.version>1.7.12</slf4j.version>
     </properties>
