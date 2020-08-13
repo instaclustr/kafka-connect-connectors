@@ -74,7 +74,7 @@ public class TopicPartitionSegmentParserTest {
         try (PipedInputStream empty = new PipedInputStream(1)) {
             pipedOutputStream = new PipedOutputStream(empty); //making sure we just have an unresponsive stream and not throwing an ioexception
             TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(empty, s3ObjectKey, "");
-            Assert.expectThrows(TimeoutException.class, () -> topicPartitionSegmentParser.getNextRecord(100L, TimeUnit.MILLISECONDS));
+            Assert.expectThrows(TimeoutException.class, () -> topicPartitionSegmentParser.getNextRecord(5L, TimeUnit.MILLISECONDS));
         } finally {
             if (pipedOutputStream != null) {
                 pipedOutputStream.close();
@@ -105,7 +105,7 @@ public class TopicPartitionSegmentParserTest {
         InputStream nullInputStream = InputStream.nullInputStream();
         TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(nullInputStream, s3ObjectKey, "");
         nullInputStream.close();
-        Assert.expectThrows(ExecutionException.class, () -> topicPartitionSegmentParser.getNextRecord(5L, TimeUnit.SECONDS));
+        Assert.expectThrows(IOException.class, () -> topicPartitionSegmentParser.getNextRecord(5L, TimeUnit.SECONDS));
     }
 
     @Test

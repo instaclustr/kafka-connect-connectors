@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class AwsStorageSourceTask extends SourceTask {
@@ -150,7 +151,7 @@ public class AwsStorageSourceTask extends SourceTask {
                         awsSourceReader.revertAwsReadPositionMarker(topicPartition);
                     }
                 }
-            } catch (IOException | UncheckedTimeoutException exception) {
+            } catch (IOException | TimeoutException exception) {
                 log.warn("Retryable exception while reading from s3", exception);
                 if (topicPartition != null) {
                     awsSourceReader.revertAwsReadPositionMarker(topicPartition);

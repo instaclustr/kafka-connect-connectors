@@ -13,10 +13,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 
 /**
@@ -104,8 +101,16 @@ public class TopicPartitionSegmentParser {
     public SourceRecord getNextRecord(Long time, TimeUnit units) throws Exception {
         try {
             return this.timeLimiter.callWithTimeout(this::getNextRecord, time, units);
-        } catch (Exception e) {
+        } catch (TimeoutException e) {
             this.closeResources(); //not possible to read from this stream after a timeout as read positions gets messed up
+            throw e;
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof IOException) {
+                throw new IOException(e);
+            } else {
+                throw e;
+            }
+        } catch (Exception e) {
             throw e;
         }
     }
