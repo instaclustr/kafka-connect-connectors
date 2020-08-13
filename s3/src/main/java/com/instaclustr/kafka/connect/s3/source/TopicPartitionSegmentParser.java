@@ -95,11 +95,7 @@ public class TopicPartitionSegmentParser {
 
             return recordFormat.readRecord(dataInputStream, sourcePartition, sourceOffset, this.targetTopic, this.partition);
         } catch (AmazonClientException e) {
-            if (!e.isRetryable()) {
-                throw new ExecutionException ("isNotRetryable", e);
-            } else {
-                throw new ExecutionException ("isRetryable", e);
-            }
+            throw new ExecutionException (e);
         } catch (EOFException e) {
             return null;
         }

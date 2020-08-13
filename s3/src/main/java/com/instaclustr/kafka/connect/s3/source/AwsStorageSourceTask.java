@@ -141,9 +141,9 @@ public class AwsStorageSourceTask extends SourceTask {
                 log.info("Thread interrupted in poll. Shutting down", e);
                 Thread.currentThread().interrupt();
             } catch (ExecutionException exception) {
-                String message = exception.getMessage();
-                if (message.equals("isNotRetryable")) {
-                    throw new AmazonClientException(exception);
+                AmazonClientException amazonClientException = new AmazonClientException(exception.getCause());
+                if (!amazonClientException.isRetryable()) {
+                    throw amazonClientException;
                 } else {
                     log.warn("Retryable S3 service exception while reading from s3", exception);
                     if (topicPartition != null) {
