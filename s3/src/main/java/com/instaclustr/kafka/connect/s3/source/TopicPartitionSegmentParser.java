@@ -70,7 +70,7 @@ public class TopicPartitionSegmentParser {
         this.singleThreadExecutor.awaitTermination(5L, TimeUnit.SECONDS);
     }
 
-    private SourceRecord getNextRecord() throws IOException, ExecutionException { //blocking call
+    private SourceRecord getNextRecord() throws IOException{ //blocking call
         try {
             if (recordFormat == null) {
                 int version = dataInputStream.readInt();
@@ -91,8 +91,6 @@ public class TopicPartitionSegmentParser {
             sourceOffset.put("s3ObjectKey", s3ObjectKey);
 
             return recordFormat.readRecord(dataInputStream, sourcePartition, sourceOffset, this.targetTopic, this.partition);
-        } catch (AmazonClientException e) {
-            throw new ExecutionException (e);
         } catch (EOFException e) {
             return null;
         }
@@ -103,15 +101,7 @@ public class TopicPartitionSegmentParser {
             return this.timeLimiter.callWithTimeout(this::getNextRecord, time, units);
         } catch (Exception e) {
             this.closeResources(); //not possible to read from this stream after a timeout as read positions gets messed up
-            if (e instanceof TimeoutException) {
-                throw e;
-            } else if (e.getCause().getCause() instanceof AmazonClientException) {
-                throw (AmazonClientException) e.getCause().getCause();
-            } else if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            } else {
-                throw e;
-            }
+            throw e;
         }
     }
 }
