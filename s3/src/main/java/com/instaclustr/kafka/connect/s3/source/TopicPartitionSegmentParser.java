@@ -101,17 +101,17 @@ public class TopicPartitionSegmentParser {
     public SourceRecord getNextRecord(Long time, TimeUnit units) throws Exception {
         try {
             return this.timeLimiter.callWithTimeout(this::getNextRecord, time, units);
-        } catch (TimeoutException e) {
+        } catch (Exception e) {
             this.closeResources(); //not possible to read from this stream after a timeout as read positions gets messed up
-            throw e;
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof IOException) {
-                throw new IOException(e);
+            if (e instanceof TimeoutException) {
+                throw e;
+            } else if (e.getCause().getCause() instanceof AmazonClientException) {
+                throw (AmazonClientException) e.getCause().getCause();
+            } else if (e.getCause() instanceof IOException) {
+                throw (IOException) e.getCause();
             } else {
                 throw e;
             }
-        } catch (Exception e) {
-            throw e;
         }
     }
 }
