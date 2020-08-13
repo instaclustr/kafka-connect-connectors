@@ -154,7 +154,7 @@ public class AwsStorageSourceTask extends SourceTask {
                             awsSourceReader.revertAwsReadPositionMarker(topicPartition);
                         }
                     }
-                } else if (throwable instanceof IOException || e instanceof TimeoutException || e instanceof IOException) {
+                } else if (throwable instanceof IOException || e instanceof TimeoutException) {
                     log.warn("Retryable exception while reading from s3", e);
                     if (topicPartition != null) {
                         awsSourceReader.revertAwsReadPositionMarker(topicPartition);
