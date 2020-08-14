@@ -105,7 +105,12 @@ public class TopicPartitionSegmentParserTest {
         InputStream nullInputStream = InputStream.nullInputStream();
         TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(nullInputStream, s3ObjectKey, "");
         nullInputStream.close();
-        Assert.expectThrows(ExecutionException.class, () -> topicPartitionSegmentParser.getNextRecord(5L, TimeUnit.SECONDS));
+        try {
+            topicPartitionSegmentParser.getNextRecord(5L, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof ExecutionException);
+            Assert.assertTrue(e.getCause() instanceof IOException);
+        }
     }
 
     @Test
