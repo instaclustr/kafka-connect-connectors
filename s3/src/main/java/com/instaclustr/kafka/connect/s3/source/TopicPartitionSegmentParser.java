@@ -70,7 +70,7 @@ public class TopicPartitionSegmentParser {
         this.singleThreadExecutor.awaitTermination(5L, TimeUnit.SECONDS);
     }
 
-    private SourceRecord getNextRecord() throws IOException{ //blocking call
+    private SourceRecord getNextRecord() throws IOException { //blocking call
         try {
             if (recordFormat == null) {
                 int version = dataInputStream.readInt();

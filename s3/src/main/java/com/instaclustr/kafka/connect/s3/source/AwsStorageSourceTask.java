@@ -143,9 +143,9 @@ public class AwsStorageSourceTask extends SourceTask {
                 log.info("Thread interrupted in poll. Shutting down", e);
                 Thread.currentThread().interrupt();
             } catch (UncheckedExecutionException | ExecutionException | TimeoutException e) {
-                Throwable throwable = e.getCause();
-                if (throwable instanceof AmazonClientException) {
-                    AmazonClientException amazonClientException = (AmazonClientException) throwable;
+                Throwable exceptionCause = e.getCause();
+                if (exceptionCause instanceof AmazonClientException) {
+                    AmazonClientException amazonClientException = (AmazonClientException) exceptionCause;
                     if (!amazonClientException.isRetryable()) {
                         throw amazonClientException;
                     } else {
@@ -154,7 +154,7 @@ public class AwsStorageSourceTask extends SourceTask {
                             awsSourceReader.revertAwsReadPositionMarker(topicPartition);
                         }
                     }
-                } else if (throwable instanceof IOException || e instanceof TimeoutException) {
+                } else if (exceptionCause instanceof IOException || e instanceof TimeoutException) {
                     log.warn("Retryable exception while reading from s3", e);
                     if (topicPartition != null) {
                         awsSourceReader.revertAwsReadPositionMarker(topicPartition);
