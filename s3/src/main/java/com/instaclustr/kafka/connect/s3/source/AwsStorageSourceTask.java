@@ -2,6 +2,7 @@ package com.instaclustr.kafka.connect.s3.source;
 
 import com.amazonaws.AmazonClientException;
 import com.google.common.util.concurrent.RateLimiter;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.instaclustr.kafka.connect.s3.AwsConnectorStringFormats;
 import com.instaclustr.kafka.connect.s3.AwsStorageConnectorCommonConfig;
@@ -16,7 +17,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class AwsStorageSourceTask extends SourceTask {
@@ -139,19 +142,23 @@ public class AwsStorageSourceTask extends SourceTask {
             } catch (InterruptedException e) {
                 log.info("Thread interrupted in poll. Shutting down", e);
                 Thread.currentThread().interrupt();
-            } catch (AmazonClientException exception) {
-                if (!exception.isRetryable()) {
-                    throw exception;
-                } else {
-                    log.warn("Retryable S3 service exception while reading from s3", exception);
+            } catch (UncheckedExecutionException | ExecutionException | TimeoutException e) {
+                Throwable exceptionCause = e.getCause();
+                if (exceptionCause instanceof AmazonClientException) {
+                    AmazonClientException amazonClientException = (AmazonClientException) exceptionCause;
+                    if (!amazonClientException.isRetryable()) {
+                        throw amazonClientException;
+                    } else {
+                        log.warn("Retryable S3 service exception while reading from s3", e);
+                        if (topicPartition != null) {
+                            awsSourceReader.revertAwsReadPositionMarker(topicPartition);
+                        }
+                    }
+                } else if (exceptionCause instanceof IOException || e instanceof TimeoutException) {
+                    log.warn("Retryable exception while reading from s3", e);
                     if (topicPartition != null) {
                         awsSourceReader.revertAwsReadPositionMarker(topicPartition);
                     }
-                }
-            } catch (IOException | UncheckedTimeoutException exception) {
-                log.warn("Retryable exception while reading from s3", exception);
-                if (topicPartition != null) {
-                    awsSourceReader.revertAwsReadPositionMarker(topicPartition);
                 }
             } catch (RuntimeException e){
                 throw e;

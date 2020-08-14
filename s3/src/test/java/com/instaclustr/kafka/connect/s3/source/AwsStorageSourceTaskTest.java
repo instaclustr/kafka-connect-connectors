@@ -16,6 +16,8 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import static org.mockito.Mockito.*;
 
@@ -54,7 +56,7 @@ public class AwsStorageSourceTaskTest {
         doReturn("test").when(mockTopicPartitionSegmentParser).getTopic();
         doReturn(0).when(mockTopicPartitionSegmentParser).getPartition();
 
-        doThrow(new UncheckedTimeoutException()).when(mockTopicPartitionSegmentParser).getNextRecord(any(), any());
+        doThrow(new TimeoutException()).when(mockTopicPartitionSegmentParser).getNextRecord(any(), any());
 
         AwsStorageSourceTask awsStorageSourceTask = new AwsStorageSourceTask(mockTransferManagerProvider, mockAwsSourceReader);
         awsStorageSourceTask.poll();
@@ -71,7 +73,7 @@ public class AwsStorageSourceTaskTest {
         doReturn(mockTopicPartitionSegmentParser).when(mockAwsSourceReader).getNextTopicPartitionSegmentParser();
         doReturn("test").when(mockTopicPartitionSegmentParser).getTopic();
         doReturn(0).when(mockTopicPartitionSegmentParser).getPartition();
-        doThrow(new IOException()).when(mockTopicPartitionSegmentParser).getNextRecord(any(), any());
+        doThrow(new ExecutionException(new IOException())).when(mockTopicPartitionSegmentParser).getNextRecord(any(), any());
 
         AwsStorageSourceTask awsStorageSourceTask = new AwsStorageSourceTask(mockTransferManagerProvider, mockAwsSourceReader);
         awsStorageSourceTask.poll();

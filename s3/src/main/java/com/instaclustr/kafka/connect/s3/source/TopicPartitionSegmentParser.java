@@ -1,5 +1,6 @@
 package com.instaclustr.kafka.connect.s3.source;
 
+import com.amazonaws.AmazonClientException;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.instaclustr.kafka.connect.s3.AwsConnectorStringFormats;
@@ -12,9 +13,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 
 /**
@@ -62,7 +61,7 @@ public class TopicPartitionSegmentParser {
         this.topicPrefix = topicPrefix;
         this.targetTopic = AwsConnectorStringFormats.generateTargetTopic(topicPrefix, topic);
         this.singleThreadExecutor = Executors.newSingleThreadExecutor();
-        this.timeLimiter = new SimpleTimeLimiter(this.singleThreadExecutor);
+        this.timeLimiter = SimpleTimeLimiter.create(this.singleThreadExecutor);
     }
 
     public void closeResources() throws IOException, InterruptedException {
@@ -99,7 +98,7 @@ public class TopicPartitionSegmentParser {
 
     public SourceRecord getNextRecord(Long time, TimeUnit units) throws Exception {
         try {
-            return this.timeLimiter.callWithTimeout(this::getNextRecord, time, units, true);
+            return this.timeLimiter.callWithTimeout(this::getNextRecord, time, units);
         } catch (Exception e) {
             this.closeResources(); //not possible to read from this stream after a timeout as read positions gets messed up
             throw e;
