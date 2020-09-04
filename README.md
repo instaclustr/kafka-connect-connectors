@@ -31,7 +31,7 @@ A tag is used to mark a distribution and it should be in sync with the distribut
 
 ## Further information and Documentation
 
-For connector documentation please see https://www.instaclustr.com/support/documentation/kafka-connect/inbuilt-kafka-connect-plugins/
+For connector documentation please see https://www.instaclustr.com/support/documentation/kafka-connect/pre-built-kafka-connect-plugins/
 
 For Instaclustr support status of this project please see https://www.instaclustr.com/support/documentation/announcements/instaclustr-open-source-project-status/
 
