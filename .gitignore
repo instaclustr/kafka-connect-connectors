@@ -5,3 +5,12 @@ target
 .classpath
 .java-version
 *.iml
+.DS_Store
+s3/.DS_Store
+s3/src/.DS_Store
+s3/src/main/.DS_Store
+s3/src/main/java/.DS_Store
+s3/src/main/java/com/.DS_Store
+s3/src/main/java/com/instaclustr/.DS_Store
+s3/src/main/java/com/instaclustr/kafka/.DS_Store
+s3/src/main/java/com/instaclustr/kafka/connect/.DS_Store
