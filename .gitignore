@@ -5,3 +5,7 @@ target
 .classpath
 .java-version
 *.iml
+.DS_Store
+s3/.DS_Store
+s3/src/.DS_Store
+s3/src/main/.DS_Store

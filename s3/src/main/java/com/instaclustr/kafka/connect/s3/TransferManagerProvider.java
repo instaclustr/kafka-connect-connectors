@@ -1,6 +1,7 @@
 package com.instaclustr.kafka.connect.s3;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Regions;
@@ -27,12 +28,10 @@ public class TransferManagerProvider {
     }
 
     public static AmazonS3ClientBuilder getS3ClientBuilderWithRegionAndCredentials(final Map<String, String> config) {
-        String accessKey = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_ACCESS_KEY_ID);
-        String secret = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_SECRET_KEY);
         String region = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_REGION);
 
         AmazonS3ClientBuilder clientBuilder = AmazonS3ClientBuilder.standard()
-                .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secret)));
+                .withCredentials(new DefaultAWSCredentialsProviderChain());
 
         if (region == null) {
             region = AwsStorageConnectorCommonConfig.DEFAULT_AWS_REGION;
