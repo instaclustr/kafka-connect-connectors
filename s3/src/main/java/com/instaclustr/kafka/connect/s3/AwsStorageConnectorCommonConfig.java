@@ -21,11 +21,7 @@ public class AwsStorageConnectorCommonConfig {
 
     public static final String AWS_REGION = "aws.region";
 
-    public static final String S3_KEY_PREFIX = "prefix";
-
-    public static final String AWS_SECRET_KEY = "aws.secretKey";
-
-    public static final String AWS_ACCESS_KEY_ID = "aws.accessKeyId";
+    public static final String S3_KEY_PREFIX = "prefix"; 
 
     public static final String DEFAULT_AWS_REGION = Regions.DEFAULT_REGION.getName();
 
@@ -36,8 +32,6 @@ public class AwsStorageConnectorCommonConfig {
         configDef.define(BUCKET, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "Name of the S3 bucket")
                 .define(S3_KEY_PREFIX, ConfigDef.Type.STRING, "", new RegexStringValidator(Pattern.compile("^$|[-a-zA-Z0-9_./]+$"), "prefix can only contain alphanumerics, underscores(_), hyphens(-), periods(.) and slashes(/) only."),
                         ConfigDef.Importance.HIGH, "Path prefix for the objects written into S3")
-                .define(AWS_ACCESS_KEY_ID, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "AWS access key id")
-                .define(AWS_SECRET_KEY, ConfigDef.Type.PASSWORD, ConfigDef.Importance.HIGH, "AWS access secret key")
                 .define(AWS_REGION, ConfigDef.Type.STRING, DEFAULT_AWS_REGION, ConfigDef.Importance.MEDIUM, String.format("AWS client region, if not set will use %s", DEFAULT_AWS_REGION));
         return configDef;
     }
@@ -69,12 +63,12 @@ public class AwsStorageConnectorCommonConfig {
             s3Client.shutdown();
         } catch (AmazonS3Exception e) {
             switch (e.getErrorCode()) {
-                case "InvalidAccessKeyId":
-                    addErrorMessageToConfigObject(configObject, AWS_ACCESS_KEY_ID, "The defined aws.accessKeyId is invalid");
-                    break;
-                case "SignatureDoesNotMatch":
-                    addErrorMessageToConfigObject(configObject, AWS_SECRET_KEY, "The defined aws.secretKey is invalid");
-                    break;
+	            case "InvalidAccessKeyId":
+	                addErrorMessageToConfigObject(configObject, "", "The AWS AccessKeyId is invalid");
+	                break;
+	            case "SignatureDoesNotMatch":
+	                addErrorMessageToConfigObject(configObject, "", "The AWS SecretKey is invalid");
+	                break;
                 case "InvalidBucketName":
                     addErrorMessageToConfigObject(configObject, BUCKET, "The defined bucket name is invalid");
                     break;
