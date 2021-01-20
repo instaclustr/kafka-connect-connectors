@@ -1,0 +1,37 @@
+steps:
+  - label: ":docker: Image Build"
+    timeout: 30
+    plugins:
+      docker-compose#v3.2.0:
+        build: maven-builder
+        image-repository: $DOCKER_REGISTRY/$DOCKER_REPO_NAME
+        image-name: $BUILDKITE_BUILD_ID
+        cache-from: maven-builder:$DOCKER_REGISTRY/$DOCKER_REPO_NAME:latest
+
+  - wait
+
+  - label: ':shipit: Publish Redama'
+    command: './publish.sh'
+    env:
+      AWS_BUCKET: "$AWS_BUCKET_REDAMA"
+      AWS_ACCESS_KEY_ID: "$REDAMA_AWS_ACCESS_KEY_ID"
+      AWS_SECRET_ACCESS_KEY: "$REDAMA_AWS_SECRET_ACCESS_KEY"
+    timeout_in_minutes: 5
+    branches: 'master'
+    plugins:
+      docker-compose#v3.2.0:
+        run: maven-builder
+
+  - block: "Continue"
+
+  - label: ':shipit: Publish Production'
+    command: './publish.sh'
+    env:
+      AWS_BUCKET: "$AWS_BUCKET_PRODUCTION"
+      AWS_ACCESS_KEY_ID: "$PRODUCTION_AWS_ACCESS_KEY_ID"
+      AWS_SECRET_ACCESS_KEY: "$PRODUCTION_AWS_SECRET_ACCESS_KEY"
+    timeout_in_minutes: 5
+    branches: 'master'
+    plugins:
+      docker-compose#v3.2.0:
+        run: maven-builder
