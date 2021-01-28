@@ -32,7 +32,7 @@ public class TopicPartitionBuffer {
     }
 
     public TopicPartitionBuffer(final String topic, final int partition) throws IOException {
-        this(topic, partition, 5 * 1024 * 1024); // default max is 5mb
+        this(topic, partition, 1 * 1024 * 1024); // default max is 1mb
     }
 
     public TopicPartitionBuffer(final String topic, final int partition, int maxSizeBytes) throws IOException {
