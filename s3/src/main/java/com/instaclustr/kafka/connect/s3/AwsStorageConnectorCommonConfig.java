@@ -22,7 +22,9 @@ public class AwsStorageConnectorCommonConfig {
     public static final String AWS_REGION = "aws.region";
 
     public static final String S3_KEY_PREFIX = "prefix"; 
-
+    
+    public static final String CONNECT_DISTRIBUTED_PROPERTIES = "/etc/kafka/connect-distributed.properties"; 
+    
     public static final String DEFAULT_AWS_REGION = Regions.DEFAULT_REGION.getName();
 
     private AwsStorageConnectorCommonConfig() {}

@@ -1,8 +1,12 @@
 package com.instaclustr.kafka.connect.s3.sink;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.instaclustr.kafka.connect.s3.AwsStorageConnectorCommonConfig;
 import com.instaclustr.kafka.connect.s3.TransferManagerProvider;
 import com.instaclustr.kafka.connect.s3.VersionUtil;
+
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -11,11 +15,14 @@ import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 public class AwsStorageSinkTask extends SinkTask {
@@ -23,7 +30,9 @@ public class AwsStorageSinkTask extends SinkTask {
     private AwsStorageSinkWriter sinkWriter;
     private TransferManagerProvider transferManagerProvider;
     private Map<TopicPartition, TopicPartitionBuffer> topicPartitionBuffers = new HashMap<>();
-
+    private Map<TopicPartition, BeginOffsetTotalRecords> beginOffsetTotalRecords = new HashMap<>();
+    private OffsetSink offsetSink;
+    
     public AwsStorageSinkTask() { //do not remove, kafka connect usage
     }
 
@@ -44,6 +53,8 @@ public class AwsStorageSinkTask extends SinkTask {
         if (transferManagerProvider == null) transferManagerProvider = new TransferManagerProvider(map);
         String bucket = map.get(AwsStorageConnectorCommonConfig.BUCKET);
         String keyPrefix = map.get(AwsStorageConnectorCommonConfig.S3_KEY_PREFIX);
+        AdminClient adminClient = AdminClient.create(getAdminClientConfig()); 
+        offsetSink = new OffsetSink(adminClient);
         if (sinkWriter == null)
             this.sinkWriter = new AwsStorageSinkWriter(transferManagerProvider.get(), bucket, keyPrefix);
     }
@@ -52,13 +63,21 @@ public class AwsStorageSinkTask extends SinkTask {
         TopicPartition topicPartition = new TopicPartition(record.topic(), record.kafkaPartition());
         // actual work
         TopicPartitionBuffer latestBuffer = topicPartitionBuffers.get(topicPartition);
+        BeginOffsetTotalRecords beginOffsetTotalRecord = beginOffsetTotalRecords.get(topicPartition);
+        if(beginOffsetTotalRecord.getBeginningOffset() == 0L) {
+        	beginOffsetTotalRecord.setBeginningOffset(record.kafkaOffset());
+        }
+        beginOffsetTotalRecord.setTotalRecords(beginOffsetTotalRecord.getTotalRecords()+1L);
+        
         try {
             latestBuffer.putRecord(record);
+            beginOffsetTotalRecords.put(topicPartition, beginOffsetTotalRecord);
         } catch (MaxBufferSizeExceededException ex) {
             // We need to make a new buffer, so flush the existing one first if there is anything in it
             if (latestBuffer.getStartOffset() > -1) sinkWriter.writeDataSegment(latestBuffer);
             TopicPartitionBuffer newBuffer = new TopicPartitionBuffer(topicPartition);
             topicPartitionBuffers.put(topicPartition, newBuffer);
+            writeCounsumerOffset(topicPartition);
             // Further MaxBufferSizeExceededExceptions will be unhandled. This indicates a record too big even by itself
             newBuffer.putRecord(record);
         }
@@ -92,11 +111,14 @@ public class AwsStorageSinkTask extends SinkTask {
                     entrySet().stream()
                     .filter(entry -> entry.getValue().getStartOffset() > -1)
                     .map(Map.Entry::getKey).collect(Collectors.toList());
-
+	        if(!buffersToBeFlushed.isEmpty()) {
+	        	offsetSink.syncConsumerGroups();
+	        }
             for (TopicPartition topicPartition : buffersToBeFlushed) {
                 final TopicPartitionBuffer topicPartitionBuffer = topicPartitionBuffers.get(topicPartition);
                 sinkWriter.writeDataSegment(topicPartitionBuffer);
                 topicPartitionBuffers.put(topicPartition, new TopicPartitionBuffer(topicPartition));
+                writeCounsumerOffset(topicPartition);
                 if (logger.isDebugEnabled()) {
                     logger.debug("actually flushing: {}, {}, {}-{}", topicPartition.topic(), topicPartition.partition(), topicPartitionBuffer.getStartOffset(), topicPartitionBuffer.getEndOffset());
                 }
@@ -124,6 +146,8 @@ public class AwsStorageSinkTask extends SinkTask {
             logger.debug("Opening topic {}, partition {}", tp.topic(), tp.partition());
             try {
                 topicPartitionBuffers.putIfAbsent(tp, new TopicPartitionBuffer(tp.topic(), tp.partition()));
+                beginOffsetTotalRecords.putIfAbsent(tp, new BeginOffsetTotalRecords(0L,0L));
+                writeCounsumerOffset(tp);
             } catch (IOException e) {
                 // We can't handle this, need to wrap in a runtime exception since the open call doesn't allow checked exceptions
                 throw new ConnectException(e);
@@ -139,4 +163,29 @@ public class AwsStorageSinkTask extends SinkTask {
             topicPartitionBuffers.remove(tp);
         });
     }
+    
+  private void writeCounsumerOffset(TopicPartition topicPartition) {
+	try {	
+      	ObjectMapper mapperObj = new ObjectMapper();
+    	Map<String,Long> consumer_offset = offsetSink.syncOffsets(topicPartition);
+    	consumer_offset.put("beginning_offset", beginOffsetTotalRecords.get(topicPartition).getBeginningOffset());
+    	consumer_offset.put("totalrecords", beginOffsetTotalRecords.get(topicPartition).getTotalRecords());
+    	String jsonconsumeroffset = mapperObj.writeValueAsString(consumer_offset);
+		logger.debug("jsonconsumeroffset::{} TopicPartition:: {}  ",jsonconsumeroffset,topicPartition);
+		sinkWriter.writeOffsetData(topicPartition, jsonconsumeroffset, "consumer_offsets");
+    } catch (IOException | InterruptedException ex) { 
+        throw new ConnectException(ex);
+	}
+	
+  }
+  
+  private Properties getAdminClientConfig() {
+	  Properties adminProps = new Properties(); 
+		  try {
+				adminProps.load(new FileInputStream(AwsStorageConnectorCommonConfig.CONNECT_DISTRIBUTED_PROPERTIES));
+			} catch (IOException  e) {
+				throw new ConnectException(e);
+			} 
+		  return adminProps;
+	}
 }

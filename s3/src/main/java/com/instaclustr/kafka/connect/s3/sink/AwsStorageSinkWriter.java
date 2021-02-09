@@ -9,6 +9,11 @@ import com.instaclustr.kafka.connect.s3.AwsConnectorStringFormats;
 
 import java.io.IOException;
 
+import org.apache.kafka.common.TopicPartition;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
 
 public class AwsStorageSinkWriter {
     private TransferManager transferManager;
@@ -31,5 +36,16 @@ public class AwsStorageSinkWriter {
         Upload upload = transferManager.upload(request);
         upload.waitForCompletion();
         topicPartitionBuffer.cleanResources();
+    }
+    public void writeOffsetData(TopicPartition  topicPartition ,String offsetData,String filename) throws IOException, InterruptedException {
+    	InputStream targetStream = new ByteArrayInputStream(offsetData.getBytes());
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(offsetData.getBytes().length);
+        PutObjectRequest request = new PutObjectRequest(bucketName
+                , AwsConnectorStringFormats.topicPartitionOffSetStorageName(keyPrefix, topicPartition,filename)
+                , targetStream
+                , metadata); 
+        Upload upload = transferManager.upload(request);
+        upload.waitForCompletion();
     }
 }
