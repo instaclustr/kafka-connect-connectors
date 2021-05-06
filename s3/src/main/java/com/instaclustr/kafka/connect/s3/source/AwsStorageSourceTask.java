@@ -113,7 +113,7 @@ public class AwsStorageSourceTask extends SourceTask {
                     SourceRecord record = topicPartitionSegmentParser.getNextRecord(10L, TimeUnit.SECONDS);
                     if (record != null) {
                         long recordOffset = (Long) record.sourceOffset().get("lastReadOffset");
-                        if (lastReadOffset == recordOffset - 1 || lastReadOffset == -1) {
+                        if (lastReadOffset <= recordOffset - 1) {
                             recordsToBeDelivered.add(record);
                             lastReadOffset = recordOffset;
                             awsSourceReader.setLastReadOffset(topicPartition, lastReadOffset);
@@ -122,13 +122,6 @@ public class AwsStorageSourceTask extends SourceTask {
                             log.warn("Lower offset encountered when reading data. " +
                                     "Record Offset :  {}, " +
                                     "last submitted offset {}", recordOffset, lastReadOffset);
-                        } else {
-                            log.error("Found record that is not next offset while parsing {}," +
-                                            " last committed record offset : {}," +
-                                            " current record offset : {} ",
-                                    record.sourceOffset().get("s3ObjectKey"), lastReadOffset, recordOffset);
-                            throw new MissingRecordsException(String.format("Last successful committed record offset : %d , next record offset : %d",
-                                    lastReadOffset, recordOffset));
                         }
                         notComplete = recordOffset != topicPartitionSegmentParser.getEndOffset();
                     } else {
