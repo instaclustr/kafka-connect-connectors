@@ -42,7 +42,7 @@ public class TransferManagerProvider {
         AWSStaticCredentialsProvider awsStaticCredentialsProvider = new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secret));
         AWSCredentialsProvider awsCredentialsProvider;
 
-        if (roleArn == null || StringUtils.isBlank(roleArn)) {
+        if (StringUtils.isBlank(roleArn)) {
             // when IAM user has direct access to the S3 bucket
             awsCredentialsProvider = awsStaticCredentialsProvider;
         } else {
@@ -58,7 +58,6 @@ public class TransferManagerProvider {
 
             awsCredentialsProvider = assumeRoleBuilder
                     .withStsClient(awsSecurityTokenService)
-                    .withRoleSessionDurationSeconds((int) TimeUnit.HOURS.toSeconds(1))
                     .build();
         }
 
