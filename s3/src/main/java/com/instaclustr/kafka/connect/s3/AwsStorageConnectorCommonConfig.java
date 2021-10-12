@@ -4,6 +4,7 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Region;
+import com.amazonaws.services.securitytoken.model.AWSSecurityTokenServiceException;
 import org.apache.kafka.common.config.Config;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigValue;
@@ -27,6 +28,8 @@ public class AwsStorageConnectorCommonConfig {
 
     public static final String AWS_ACCESS_KEY_ID = "aws.accessKeyId";
 
+    public static final String AWS_IAM_ROLE_ARN = "aws.role.arn";
+
     public static final String DEFAULT_AWS_REGION = Regions.DEFAULT_REGION.getName();
 
     private AwsStorageConnectorCommonConfig() {}
@@ -38,7 +41,8 @@ public class AwsStorageConnectorCommonConfig {
                         ConfigDef.Importance.HIGH, "Path prefix for the objects written into S3")
                 .define(AWS_ACCESS_KEY_ID, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "AWS access key id")
                 .define(AWS_SECRET_KEY, ConfigDef.Type.PASSWORD, ConfigDef.Importance.HIGH, "AWS access secret key")
-                .define(AWS_REGION, ConfigDef.Type.STRING, DEFAULT_AWS_REGION, ConfigDef.Importance.MEDIUM, String.format("AWS client region, if not set will use %s", DEFAULT_AWS_REGION));
+                .define(AWS_REGION, ConfigDef.Type.STRING, DEFAULT_AWS_REGION, ConfigDef.Importance.MEDIUM, String.format("AWS client region, if not set will use %s", DEFAULT_AWS_REGION))
+                .define(AWS_IAM_ROLE_ARN, ConfigDef.Type.STRING, "", ConfigDef.Importance.HIGH, "");
         return configDef;
     }
 
@@ -67,7 +71,7 @@ public class AwsStorageConnectorCommonConfig {
                 addErrorMessageToConfigObject(configObject, BUCKET, "The defined bucket name does not exist");
             }
             s3Client.shutdown();
-        } catch (AmazonS3Exception e) {
+        } catch (AmazonS3Exception | AWSSecurityTokenServiceException e) {
             switch (e.getErrorCode()) {
                 case "InvalidAccessKeyId":
                     addErrorMessageToConfigObject(configObject, AWS_ACCESS_KEY_ID, "The defined aws.accessKeyId is invalid");
@@ -80,6 +84,12 @@ public class AwsStorageConnectorCommonConfig {
                     break;
                 case "IllegalLocationConstraintException":
                     addErrorMessageToConfigObject(configObject, AWS_REGION, String.format("Defined region(%s) is not the same as the bucket region", sentConfigMap.get(AWS_REGION)));
+                    break;
+                case "AccessDenied":
+                    addErrorMessageToConfigObject(configObject, AWS_IAM_ROLE_ARN, "The user and/or role hasn't been setup correctly with the required permissions");
+                    break;
+                case "ValidationError":
+                    addErrorMessageToConfigObject(configObject, AWS_IAM_ROLE_ARN, "The defined aws.role.arn is invalid");
                     break;
                 default:
                     throw new ConnectException(String.format("Unknown Amazon S3 exception while validating config, %s", e.getErrorCode()), e);
