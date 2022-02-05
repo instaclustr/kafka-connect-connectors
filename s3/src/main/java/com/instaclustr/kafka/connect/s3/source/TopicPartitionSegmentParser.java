@@ -81,6 +81,7 @@ public class TopicPartitionSegmentParser {
                 }
             }
 
+            System.out.println(">>>> record format:" + recordFormat);
             HashMap<String, String> sourcePartition = new HashMap<>();
             sourcePartition.put("source", String.format("%s/%d", this.topic, this.partition));
             sourcePartition.put("targetPrefix", this.topicPrefix);

@@ -15,112 +15,77 @@ import org.apache.kafka.connect.storage.SimpleHeaderConverter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 public class RecordFormat0 implements RecordFormat {
-    public static final int RECORD_METADATA_LENGTH = Integer.BYTES * 3 + Long.BYTES * 2; //key, value, header length + offset length + timestamp
+    private byte[] lineSeparatorBytes = System.lineSeparator().getBytes(StandardCharsets.UTF_8);
 
-    private ByteArrayConverter byteArrayConverter;
-    private SimpleHeaderConverter headerConverter;
-
-
-    public RecordFormat0() {
-        byteArrayConverter = new ByteArrayConverter();
-        headerConverter = new SimpleHeaderConverter();
-    }
+    public RecordFormat0() {}
 
     @Override
     public int writeRecord(final DataOutputStream dataOutputStream, final SinkRecord record, int sizeLimit) throws MaxBufferSizeExceededException, IOException {
-        byte[] keyData = byteArrayConverter.fromConnectData(record.topic(), record.keySchema(), record.key());
-        byte[] valueData = byteArrayConverter.fromConnectData(record.topic(), record.valueSchema(), record.value());
-        List<Pair<byte[], byte[]>> headerData = new LinkedList<>();
+        byte[] keyData = (byte[]) record.key();
+        byte[] valueData = (byte[]) record.value();
 
-        int headerDataTotalLength = 0;
-        if (record.headers() != null) {
-            for (Header header : record.headers()) {
-                ImmutablePair<byte[], byte[]> headerBytesPair = new ImmutablePair<>(
-                        header.key().getBytes(UTF_8),
-                        this.headerConverter.fromConnectHeader(record.topic(), header.key(), header.schema(), header.value()));
-                if (headerBytesPair.right != null) {
-                    headerDataTotalLength += headerBytesPair.left.length + Integer.BYTES * 2 + headerBytesPair.right.length;
-                } else {
-                    headerDataTotalLength += headerBytesPair.left.length + Integer.BYTES * 2;
-                }
-                headerData.add(headerBytesPair);
-            }
-        }
-
-        int keyLength = (keyData == null) ? -1 : keyData.length;
-        int valueLength = (valueData == null) ? -1 : valueData.length;
+        byte[] keyLength = ((keyData == null) ? "0" : Long.toString(keyData.length)).getBytes();
+        byte[] valueLength = ((valueData == null) ? "0" : Long.toString(valueData.length)).getBytes();
 
         if (keyData == null) keyData = new byte[0];
         if (valueData == null) valueData = new byte[0];
 
-        int nextChunkSize = RECORD_METADATA_LENGTH + keyData.length + valueData.length + headerDataTotalLength;
+        byte[] kafkaOffset = Long.toString(record.kafkaOffset()).getBytes();
+        byte[] timestamp = Long.toString(record.timestamp()).getBytes();
+
+        int nextChunkSize = kafkaOffset.length + timestamp.length + keyLength.length + valueLength.length +
+                keyData.length + valueData.length + lineSeparatorBytes.length;
 
         if (nextChunkSize > sizeLimit) {
             throw new MaxBufferSizeExceededException();
         }
 
-        dataOutputStream.writeLong(record.kafkaOffset());
-        dataOutputStream.writeLong(record.timestamp());
-        dataOutputStream.writeInt(keyLength);
-        dataOutputStream.writeInt(valueLength);
-        dataOutputStream.writeInt(headerData.size());
+        // check writing as UTF and able to read it back
+        dataOutputStream.write(kafkaOffset);
+        dataOutputStream.write(timestamp);
+        dataOutputStream.write(keyLength);
+        dataOutputStream.write(valueLength);
         dataOutputStream.write(keyData);
         dataOutputStream.write(valueData);
-        for (Pair<byte[], byte[]> headerDataPair : headerData) {
-            dataOutputStream.writeInt(headerDataPair.getLeft().length); //key
-            dataOutputStream.write(headerDataPair.getLeft());
-            if (headerDataPair.getRight() != null) {
-                dataOutputStream.writeInt(headerDataPair.getRight().length); //value
-                dataOutputStream.write(headerDataPair.getRight());
-            } else {
-                dataOutputStream.writeInt(-1);
-            }
-        }
+        dataOutputStream.write(lineSeparatorBytes);
+//        dataOutputStream.flush();
 
+        // offset, timestamp, key, value
         return nextChunkSize;
     }
 
     @Override
-    public SourceRecord readRecord(final DataInputStream dataInputStream, final Map<String, ?> sourcePartition, final Map<String, Object> sourceOffset, final String topic, final int partition) throws IOException {
-        long offset = dataInputStream.readLong();
-        long timestamp = dataInputStream.readLong();
-        int keyLength = dataInputStream.readInt();
-        int valueLength = dataInputStream.readInt();
-        int headersCount = dataInputStream.readInt();
+    public SourceRecord readRecord(final DataInputStream dataInputStream, final Map<String, ?> sourcePartition,
+                                   final Map<String, Object> sourceOffset, final String topic, final int partition) throws IOException, NumberFormatException {
+
+        long offset = Long.parseLong(dataInputStream.readUTF());
+        long timestamp = Long.parseLong(dataInputStream.readUTF());
+        int keyLength = Integer.parseInt(dataInputStream.readUTF());
+        int valueLength = Integer.parseInt(dataInputStream.readUTF());
+
+        System.out.println(">>>>>> offset: " + offset);
+        System.out.println(">>>>>> timestamp: " + timestamp);
+        System.out.println(">>>>>> keyLength: " + keyLength);
+        System.out.println(">>>>>> valueLength: " + valueLength);
 
         byte[] keyHolder;
         byte[] valueHolder;
-        if (keyLength == -1) {
+        if (keyLength == 0) {
             keyHolder = null;
         } else {
             keyHolder = dataInputStream.readNBytes(keyLength);
         }
-        if (valueLength == -1) {
+        if (valueLength == 0) {
             valueHolder = null;
         } else {
             valueHolder = dataInputStream.readNBytes(valueLength);
         }
-        Headers headers = new ConnectHeaders();
-
-        for (int i = 0; i < headersCount; i++) {
-            int headerKeyLength = dataInputStream.readInt();
-            String key = new String(dataInputStream.readNBytes(headerKeyLength), UTF_8);
-            int headerValueLength = dataInputStream.readInt();
-            if (headerValueLength == -1) {
-                headers.add(key, this.headerConverter.toConnectHeader(topic, key, null));
-            } else {
-                headers.add(key, this.headerConverter.toConnectHeader(topic, key, dataInputStream.readNBytes(headerValueLength)));
-            }
-        }
 
         sourceOffset.put("lastReadOffset", offset);
-        return new SourceRecord(sourcePartition, sourceOffset, topic, partition, Schema.BYTES_SCHEMA, keyHolder, Schema.BYTES_SCHEMA, valueHolder, timestamp, headers);
+        return new SourceRecord(sourcePartition, sourceOffset, topic, partition, Schema.STRING_SCHEMA, keyHolder, Schema.STRING_SCHEMA, valueHolder, timestamp);
     }
 }

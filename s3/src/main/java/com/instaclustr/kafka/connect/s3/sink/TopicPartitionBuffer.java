@@ -58,6 +58,9 @@ public class TopicPartitionBuffer {
             currentPosition += Integer.BYTES;
         }
 
+        System.out.println(">>>>capacity: " + capacity);
+        System.out.println(">>>>currentPosition: " + currentPosition);
+
         currentPosition += recordFormat.writeRecord(dataStream, record, capacity - currentPosition);
         endOffset = record.kafkaOffset();
     }
