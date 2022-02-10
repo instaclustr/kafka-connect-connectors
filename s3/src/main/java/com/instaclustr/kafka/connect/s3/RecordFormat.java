@@ -7,6 +7,7 @@ import org.apache.kafka.connect.source.SourceRecord;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Map;
 
 /**
@@ -18,6 +19,6 @@ public interface RecordFormat {
     // Throws a MaxBufferSizeExceededException if the record will be larger than the given sizeLimit
     int writeRecord(final DataOutputStream dataOutputStream, SinkRecord record, int sizeLimit) throws MaxBufferSizeExceededException, IOException;
 
-    SourceRecord readRecord(final DataInputStream dataInputStream, final Map<String, ?> sourcePartition, final Map<String, Object> sourceOffset, final String topic, final int partition) throws IOException;
+    SourceRecord readRecord(final String singleRow, final Map<String, ?> sourcePartition, final Map<String, Object> sourceOffset, final String topic, final int partition) throws IOException;
 
 }

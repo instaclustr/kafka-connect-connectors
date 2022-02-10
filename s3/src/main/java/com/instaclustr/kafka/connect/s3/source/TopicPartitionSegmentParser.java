@@ -8,11 +8,9 @@ import com.instaclustr.kafka.connect.s3.RecordFormat;
 import com.instaclustr.kafka.connect.s3.RecordFormat0;
 import org.apache.kafka.connect.source.SourceRecord;
 
-import java.io.DataInputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
 
@@ -20,10 +18,12 @@ import java.util.regex.Matcher;
  * This class handles converting S3Objects into SourceRecords using the relevant RecordFormat
  */
 
-public class TopicPartitionSegmentParser {
+public class TopicPartitionSegmentParser implements Iterator<String>{
 
     private final String targetTopic;
-    private DataInputStream dataInputStream;
+    private BufferedReader bufferedReader;
+    private Iterator<String> lines;
+    private long lineNumber;
     private TimeLimiter timeLimiter;
     private final String topic;
     private String s3ObjectKey;
@@ -56,7 +56,9 @@ public class TopicPartitionSegmentParser {
         } else {
             throw new IllegalArgumentException("filename is not in a valid format");
         }
-        this.dataInputStream = new DataInputStream(s3ObjectInputStream);
+        this.bufferedReader = new BufferedReader(new InputStreamReader(s3ObjectInputStream));
+        this.lines = bufferedReader.lines().iterator();
+        this.lineNumber = -1;
         this.s3ObjectKey = s3ObjectKey;
         this.topicPrefix = topicPrefix;
         this.targetTopic = AwsConnectorStringFormats.generateTargetTopic(topicPrefix, topic);
@@ -65,23 +67,23 @@ public class TopicPartitionSegmentParser {
     }
 
     public void closeResources() throws IOException, InterruptedException {
-        dataInputStream.close();
+        bufferedReader.close();
         this.singleThreadExecutor.shutdownNow();
         this.singleThreadExecutor.awaitTermination(5L, TimeUnit.SECONDS);
     }
 
-    private SourceRecord getNextRecord() throws IOException { //blocking call
+    private SourceRecord getNextRecord() throws IOException, EndOfSourceStreamException { //blocking call
         try {
-            if (recordFormat == null) {
-                int version = dataInputStream.readInt();
-                if (version == 0) {
-                    recordFormat = new RecordFormat0();
-                } else {
-                    throw new IOException("Unknown version format");
-                }
-            }
+            recordFormat = new RecordFormat0();
+//            if (recordFormat == null) {
+//                int version = bufferedReader.readInt();
+//                if (version == 0) {
+//                    recordFormat = new RecordFormat0();
+//                } else {
+//                    throw new IOException("Unknown version format");
+//                }
+//            }
 
-            System.out.println(">>>> record format:" + recordFormat);
             HashMap<String, String> sourcePartition = new HashMap<>();
             sourcePartition.put("source", String.format("%s/%d", this.topic, this.partition));
             sourcePartition.put("targetPrefix", this.topicPrefix);
@@ -91,7 +93,7 @@ public class TopicPartitionSegmentParser {
             sourceOffset.put("endOffset", AwsConnectorStringFormats.convertLongIntoLexySortableString(this.endOffset));
             sourceOffset.put("s3ObjectKey", s3ObjectKey);
 
-            return recordFormat.readRecord(dataInputStream, sourcePartition, sourceOffset, this.targetTopic, this.partition);
+            return recordFormat.readRecord(next(), sourcePartition, sourceOffset, this.targetTopic, this.partition);
         } catch (EOFException e) {
             return null;
         }
@@ -104,5 +106,24 @@ public class TopicPartitionSegmentParser {
             this.closeResources(); //not possible to read from this stream after a timeout as read positions gets messed up
             throw e;
         }
+    }
+
+    @Override
+    public boolean hasNext() {
+        return lines.hasNext();
+    }
+
+    @Override
+    public String next() {
+        lineNumber += 1;
+        if (!lines.hasNext()) {
+            try {
+                throw new EndOfSourceStreamException("Reach the end of the Source Data");
+            } catch (EndOfSourceStreamException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return lines.next();
     }
 }

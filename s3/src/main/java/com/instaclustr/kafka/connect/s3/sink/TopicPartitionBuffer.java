@@ -52,14 +52,9 @@ public class TopicPartitionBuffer {
             throw new RecordOutOfOrderException("Record offset must always be larger than the buffer latest record offset");
         }
 
-        if (currentPosition == 0) {
+        if (startOffset==-1){
             startOffset = record.kafkaOffset();
-            dataStream.writeInt(0); // Version specifier
-            currentPosition += Integer.BYTES;
         }
-
-        System.out.println(">>>>capacity: " + capacity);
-        System.out.println(">>>>currentPosition: " + currentPosition);
 
         currentPosition += recordFormat.writeRecord(dataStream, record, capacity - currentPosition);
         endOffset = record.kafkaOffset();
