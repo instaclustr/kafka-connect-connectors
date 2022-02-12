@@ -11,6 +11,7 @@ import org.apache.kafka.connect.source.SourceRecord;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
 
@@ -18,7 +19,7 @@ import java.util.regex.Matcher;
  * This class handles converting S3Objects into SourceRecords using the relevant RecordFormat
  */
 
-public class TopicPartitionSegmentParser implements Iterator<String>{
+public class TopicPartitionSegmentParser implements Iterator<String> {
 
     private final String targetTopic;
     private BufferedReader bufferedReader;
@@ -72,7 +73,7 @@ public class TopicPartitionSegmentParser implements Iterator<String>{
         this.singleThreadExecutor.awaitTermination(5L, TimeUnit.SECONDS);
     }
 
-    private SourceRecord getNextRecord() throws IOException, EndOfSourceStreamException { //blocking call
+    private SourceRecord getNextRecord() throws IOException { //blocking call
         try {
             recordFormat = new RecordFormat0();
 //            if (recordFormat == null) {
@@ -94,7 +95,7 @@ public class TopicPartitionSegmentParser implements Iterator<String>{
             sourceOffset.put("s3ObjectKey", s3ObjectKey);
 
             return recordFormat.readRecord(next(), sourcePartition, sourceOffset, this.targetTopic, this.partition);
-        } catch (EOFException e) {
+        } catch (EOFException | NoSuchElementException e) {
             return null;
         }
     }
@@ -117,13 +118,8 @@ public class TopicPartitionSegmentParser implements Iterator<String>{
     public String next() {
         lineNumber += 1;
         if (!lines.hasNext()) {
-            try {
-                throw new EndOfSourceStreamException("Reach the end of the Source Data");
-            } catch (EndOfSourceStreamException e) {
-                e.printStackTrace();
-            }
+            throw new NoSuchElementException("Reach the end of the Source Data");
         }
-
         return lines.next();
     }
 }

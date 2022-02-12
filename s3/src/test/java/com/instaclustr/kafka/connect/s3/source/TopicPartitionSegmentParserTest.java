@@ -1,7 +1,6 @@
 package com.instaclustr.kafka.connect.s3.source;
 
 import com.google.common.util.concurrent.UncheckedTimeoutException;
-import com.instaclustr.kafka.connect.s3.source.EndOfSourceStreamException;
 import com.instaclustr.kafka.connect.s3.sink.TopicPartitionBuffer;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
@@ -103,24 +102,24 @@ public class TopicPartitionSegmentParserTest {
         }
     }
 
-//    @Test
-//    public void returnNullOnEofException() throws Exception {
-//        TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(InputStream.nullInputStream(), s3ObjectKey, "");
-//        Assert.assertNull(topicPartitionSegmentParser.getNextRecord(1L, TimeUnit.SECONDS));
-//        Assert.assertNull(topicPartitionSegmentParser.getNextRecord(1L, TimeUnit.SECONDS));
-//        topicPartitionSegmentParser.closeResources();
-//    }
+    @Test
+    public void returnNullOnEofException() throws Exception {
+        TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(InputStream.nullInputStream(), s3ObjectKey, "");
+        Assert.assertNull(topicPartitionSegmentParser.getNextRecord(1L, TimeUnit.SECONDS));
+        Assert.assertNull(topicPartitionSegmentParser.getNextRecord(1L, TimeUnit.SECONDS));
+        topicPartitionSegmentParser.closeResources();
+    }
 
-//    @Test
-//    public void multipleCreationOfParsersInALoop() throws Exception {
-//        //test if there is a thread leak
-//        for (int i = 0; i < 5000; i++) {
-//            TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(InputStream.nullInputStream(), s3ObjectKey, "");
-//            Assert.assertNull(topicPartitionSegmentParser.getNextRecord(100L, TimeUnit.MILLISECONDS));
-//            topicPartitionSegmentParser.closeResources();
-//        }
-//    }
-//
+    @Test
+    public void multipleCreationOfParsersInALoop() throws Exception {
+        //test if there is a thread leak
+        for (int i = 0; i < 5000; i++) {
+            TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(InputStream.nullInputStream(), s3ObjectKey, "");
+            Assert.assertNull(topicPartitionSegmentParser.getNextRecord(100L, TimeUnit.MILLISECONDS));
+            topicPartitionSegmentParser.closeResources();
+        }
+    }
+
 //    @Test
 //    public void givenClosedStreamThrowIoException() throws IOException {
 //        InputStream nullInputStream = InputStream.nullInputStream();
@@ -134,7 +133,5 @@ public class TopicPartitionSegmentParserTest {
 //            Assert.assertTrue(e.getCause() instanceof IOException);
 //        }
 //    }
-//
-
 
 }
