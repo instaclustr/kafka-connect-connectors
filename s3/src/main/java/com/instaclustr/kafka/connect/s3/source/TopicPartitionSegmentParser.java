@@ -7,11 +7,12 @@ import com.instaclustr.kafka.connect.s3.AwsConnectorStringFormats;
 import com.instaclustr.kafka.connect.s3.RecordFormat;
 import com.instaclustr.kafka.connect.s3.RecordFormat0;
 import org.apache.kafka.connect.source.SourceRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
 
@@ -20,6 +21,7 @@ import java.util.regex.Matcher;
  */
 
 public class TopicPartitionSegmentParser implements Iterator<String> {
+    private static Logger logger = LoggerFactory.getLogger(TopicPartitionSegmentParser.class);
 
     private final String targetTopic;
     private BufferedReader bufferedReader;
@@ -57,8 +59,8 @@ public class TopicPartitionSegmentParser implements Iterator<String> {
         } else {
             throw new IllegalArgumentException("filename is not in a valid format");
         }
-        this.bufferedReader = new BufferedReader(new InputStreamReader(s3ObjectInputStream));
-        this.lines = bufferedReader.lines().iterator();
+        this.bufferedReader = new BufferedReader(new InputStreamReader(s3ObjectInputStream, StandardCharsets.UTF_8));
+        this.lines = this.bufferedReader.lines().iterator();
         this.lineNumber = -1;
         this.s3ObjectKey = s3ObjectKey;
         this.topicPrefix = topicPrefix;
@@ -75,15 +77,13 @@ public class TopicPartitionSegmentParser implements Iterator<String> {
 
     private SourceRecord getNextRecord() throws IOException { //blocking call
         try {
-            recordFormat = new RecordFormat0();
-//            if (recordFormat == null) {
-//                int version = bufferedReader.readInt();
-//                if (version == 0) {
-//                    recordFormat = new RecordFormat0();
-//                } else {
-//                    throw new IOException("Unknown version format");
-//                }
-//            }
+            if (recordFormat == null) {
+                if (bufferedReader.ready()) {
+                    recordFormat = new RecordFormat0();
+                } else {
+                    throw new IOException("Unknown version format");
+                }
+            }
 
             HashMap<String, String> sourcePartition = new HashMap<>();
             sourcePartition.put("source", String.format("%s/%d", this.topic, this.partition));
@@ -94,7 +94,9 @@ public class TopicPartitionSegmentParser implements Iterator<String> {
             sourceOffset.put("endOffset", AwsConnectorStringFormats.convertLongIntoLexySortableString(this.endOffset));
             sourceOffset.put("s3ObjectKey", s3ObjectKey);
 
-            return recordFormat.readRecord(next(), sourcePartition, sourceOffset, this.targetTopic, this.partition);
+            SourceRecord sourceRecord = recordFormat.readRecord(next(), sourcePartition, sourceOffset, this.targetTopic, this.partition);
+            logger.info(">>>>> returned sourceRecord: " + sourceRecord);
+            return sourceRecord;
         } catch (EOFException | NoSuchElementException e) {
             return null;
         }
@@ -120,6 +122,6 @@ public class TopicPartitionSegmentParser implements Iterator<String> {
         if (!lines.hasNext()) {
             throw new NoSuchElementException("Reach the end of the Source Data");
         }
-        return lines.next();
+        return lines.next().trim();
     }
 }

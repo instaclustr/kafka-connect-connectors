@@ -117,40 +117,40 @@ public class AwsStorageSourceTaskTest {
         Assert.expectThrows(MissingRecordsException.class, awsStorageSourceTask::poll);
     }
 
-//    @Test
-//    public void givenAwsSdkThrowsServiceTypeAwsServerExceptionResetReadPosition() throws IOException {
-//        TransferManagerProvider mockTransferManagerProvider = mock(TransferManagerProvider.class);
-//        AwsSourceReader mockAwsSourceReader = mock(AwsSourceReader.class);
-//        S3ObjectInputStream s3ObjectInputStream = mock(S3ObjectInputStream.class);
-//        TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(s3ObjectInputStream,
-//                "prefix/test/0/0000000000000000002-0000000000000000004", "");
-//
-//        doReturn(topicPartitionSegmentParser).when(mockAwsSourceReader).getNextTopicPartitionSegmentParser();
-//        AmazonServiceException amazonServiceException = new AmazonServiceException("hello");
-//        amazonServiceException.setErrorType(AmazonServiceException.ErrorType.Service);
-//        doThrow(amazonServiceException).when(s3ObjectInputStream).read();
-//
-//        AwsStorageSourceTask awsStorageSourceTask = new AwsStorageSourceTask(mockTransferManagerProvider, mockAwsSourceReader);
-//        awsStorageSourceTask.poll();
-//        verify(mockAwsSourceReader, times(1)).revertAwsReadPositionMarker(any());
-//    }
+    @Test
+    public void givenAwsSdkThrowsServiceTypeAwsServerExceptionResetReadPosition() throws IOException {
+        TransferManagerProvider mockTransferManagerProvider = mock(TransferManagerProvider.class);
+        AwsSourceReader mockAwsSourceReader = mock(AwsSourceReader.class);
+        S3ObjectInputStream s3ObjectInputStream = mock(S3ObjectInputStream.class);
+        TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(s3ObjectInputStream,
+                "prefix/test/0/0000000000000000002-0000000000000000004", "");
 
-//    @Test
-//    public void givenAwsSdkThrowsRetryableAwsClientExceptionResetReadPosition() throws IOException {
-//        TransferManagerProvider mockTransferManagerProvider = mock(TransferManagerProvider.class);
-//        AwsSourceReader mockAwsSourceReader = mock(AwsSourceReader.class);
-//        S3ObjectInputStream s3ObjectInputStream = mock(S3ObjectInputStream.class);
-//        TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(s3ObjectInputStream,
-//                "prefix/test/0/0000000000000000002-0000000000000000004", "");
-//
-//        doReturn(topicPartitionSegmentParser).when(mockAwsSourceReader).getNextTopicPartitionSegmentParser();
-//        AmazonClientException amazonClientException = new AmazonClientException("hello");
-//        doThrow(amazonClientException).when(s3ObjectInputStream).read();
-//
-//        AwsStorageSourceTask awsStorageSourceTask = new AwsStorageSourceTask(mockTransferManagerProvider, mockAwsSourceReader);
-//        awsStorageSourceTask.poll();
-//        verify(mockAwsSourceReader, times(1)).revertAwsReadPositionMarker(any());
-//    }
+        doReturn(topicPartitionSegmentParser).when(mockAwsSourceReader).getNextTopicPartitionSegmentParser();
+        AmazonServiceException amazonServiceException = new AmazonServiceException("hello");
+        amazonServiceException.setErrorType(AmazonServiceException.ErrorType.Service);
+        doThrow(amazonServiceException).when(s3ObjectInputStream).read();
+
+        AwsStorageSourceTask awsStorageSourceTask = new AwsStorageSourceTask(mockTransferManagerProvider, mockAwsSourceReader);
+        awsStorageSourceTask.poll();
+        verify(mockAwsSourceReader, times(1)).revertAwsReadPositionMarker(any());
+    }
+
+    @Test
+    public void givenAwsSdkThrowsRetryableAwsClientExceptionResetReadPosition() throws IOException {
+        TransferManagerProvider mockTransferManagerProvider = mock(TransferManagerProvider.class);
+        AwsSourceReader mockAwsSourceReader = mock(AwsSourceReader.class);
+        S3ObjectInputStream s3ObjectInputStream = mock(S3ObjectInputStream.class);
+        TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(s3ObjectInputStream,
+                "prefix/test/0/0000000000000000002-0000000000000000004", "");
+
+        doReturn(topicPartitionSegmentParser).when(mockAwsSourceReader).getNextTopicPartitionSegmentParser();
+        AmazonClientException amazonClientException = new AmazonClientException("hello");
+        doThrow(amazonClientException).when(s3ObjectInputStream).read();
+
+        AwsStorageSourceTask awsStorageSourceTask = new AwsStorageSourceTask(mockTransferManagerProvider, mockAwsSourceReader);
+        awsStorageSourceTask.poll();
+        verify(mockAwsSourceReader, times(1)).revertAwsReadPositionMarker(any());
+    }
 
     @Test
     public void recordProducerRateLimitTest() throws Exception {
