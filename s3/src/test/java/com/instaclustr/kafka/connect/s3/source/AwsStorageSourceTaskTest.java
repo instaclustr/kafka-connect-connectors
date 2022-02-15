@@ -4,7 +4,6 @@ package com.instaclustr.kafka.connect.s3.source;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
-import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.instaclustr.kafka.connect.s3.TransferManagerProvider;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -14,7 +13,6 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -95,26 +93,6 @@ public class AwsStorageSourceTaskTest {
         AwsStorageSourceTask awsStorageSourceTask = new AwsStorageSourceTask(mockTransferManagerProvider, mockAwsSourceReader);
         Assert.expectThrows(MissingRecordsException.class, awsStorageSourceTask::poll);
         verify(mockAwsSourceReader, times(0)).revertAwsReadPositionMarker(any());
-    }
-
-    @Test
-    public void givenObjectStreamThatGivesBadOffsetRecordThrowException() throws Exception {
-        TransferManagerProvider mockTransferManagerProvider = mock(TransferManagerProvider.class);
-        AwsSourceReader mockAwsSourceReader = mock(AwsSourceReader.class);
-        TopicPartitionSegmentParser mockTopicPartitionSegmentParser = mock(TopicPartitionSegmentParser.class);
-
-        doReturn(mockTopicPartitionSegmentParser).when(mockAwsSourceReader).getNextTopicPartitionSegmentParser();
-        doReturn("test").when(mockTopicPartitionSegmentParser).getTopic();
-        doReturn(0).when(mockTopicPartitionSegmentParser).getPartition();
-        doReturn(1L).when(mockAwsSourceReader).getLastReadOffset(any());
-        HashMap<String, Object> sourceOffset = new HashMap<>();
-        sourceOffset.put("lastReadOffset", 5L);
-        sourceOffset.put("s3ObjectKey", "test-key");
-
-        doReturn(new SourceRecord(Collections.emptyMap(), sourceOffset, "test", 0, Schema.BYTES_SCHEMA, new byte[0])).when(mockTopicPartitionSegmentParser).getNextRecord(any(), any());
-
-        AwsStorageSourceTask awsStorageSourceTask = new AwsStorageSourceTask(mockTransferManagerProvider, mockAwsSourceReader);
-        Assert.expectThrows(MissingRecordsException.class, awsStorageSourceTask::poll);
     }
 
     @Test

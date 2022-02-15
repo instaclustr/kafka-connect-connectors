@@ -54,11 +54,9 @@ public class RecordFormat0 implements RecordFormat {
     @Override
     public SourceRecord readRecord(final String singleRow, final Map<String, ?> sourcePartition,
                                    final Map<String, Object> sourceOffset, final String topic, final int partition) throws IOException, NumberFormatException {
-        logger.info(">>>>>>Reading record: " + singleRow);
 
         try {
             JsonObject jsonObject = new JsonParser().parse(singleRow).getAsJsonObject();
-            logger.info(">>>>>>Constructing JSON object: ");
 
             if (jsonObject.isJsonObject()) {
                 byte[] key = (jsonObject.get("k").isJsonNull()) ? null : readAsObjectOrString(jsonObject, "k").getBytes();
@@ -81,8 +79,8 @@ public class RecordFormat0 implements RecordFormat {
                 throw new IOException("Did not receive a json object");
             }
         } catch (Exception e) {
-            logger.info("Could not convert to json, reason: " + e.getMessage());
-            throw new IOException("Could not parse data as Json, reason: " + e.getMessage());
+            logger.info("Could not construct Source Record, reason: " + e.getMessage());
+            throw new IOException("Could not construct Source Record, reason: " + e.getMessage());
         }
     }
 
@@ -99,7 +97,7 @@ public class RecordFormat0 implements RecordFormat {
         try {
             return jsonObject.getAsJsonObject(memberName).toString();
         } catch (ClassCastException e) {
-            return jsonObject.get(memberName).getAsString();
+            return "\"" + jsonObject.get(memberName).getAsString() + "\"";
         }
     }
 
