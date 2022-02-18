@@ -36,7 +36,7 @@ public class RecordFormat0 implements RecordFormat {
         byte[] valueData = (record.value() == null || Arrays.equals(((byte[]) record.value()), "".getBytes())) ? "null".getBytes() : ((byte[]) record.value());
 
         String recordStr = recordAsJson(asString(keyData), asString(valueData), record.timestamp(), record.kafkaOffset());
-        logger.info(">>>>>>Writing record: " + recordStr);
+
         byte[] writableRecord = recordStr.getBytes();
 
         int nextChunkSize = writableRecord.length + lineSeparatorBytes.length;

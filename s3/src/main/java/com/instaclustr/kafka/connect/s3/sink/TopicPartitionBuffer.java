@@ -32,7 +32,7 @@ public class TopicPartitionBuffer {
     }
 
     public TopicPartitionBuffer(final String topic, final int partition) throws IOException {
-        this(topic, partition, 5 * 1024 * 1024); // default max is 5mb
+        this(topic, partition, 3 * 1024 * 1024); // default max is 3mb
     }
 
     public TopicPartitionBuffer(final String topic, final int partition, int maxSizeBytes) throws IOException {
@@ -51,11 +51,6 @@ public class TopicPartitionBuffer {
         if (endOffset >= record.kafkaOffset()) {
             throw new RecordOutOfOrderException("Record offset must always be larger than the buffer latest record offset");
         }
-//        if (currentPosition == 0) {
-//            startOffset = record.kafkaOffset();
-//            dataStream.writeInt(0); // Version specifier
-//            currentPosition += Integer.BYTES;
-//        }
 
         if (startOffset==-1){
             startOffset = record.kafkaOffset();

@@ -94,9 +94,7 @@ public class TopicPartitionSegmentParser implements Iterator<String> {
             sourceOffset.put("endOffset", AwsConnectorStringFormats.convertLongIntoLexySortableString(this.endOffset));
             sourceOffset.put("s3ObjectKey", s3ObjectKey);
 
-            SourceRecord sourceRecord = recordFormat.readRecord(next(), sourcePartition, sourceOffset, this.targetTopic, this.partition);
-            logger.info(">>>>> returned sourceRecord: " + sourceRecord);
-            return sourceRecord;
+            return recordFormat.readRecord(next(), sourcePartition, sourceOffset, this.targetTopic, this.partition);
         } catch (EOFException | NoSuchElementException e) {
             return null;
         }

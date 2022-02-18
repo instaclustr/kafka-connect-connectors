@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 public class TopicPartitionSegmentParserTest {
     public static final String LAST_READ_OFFSET = "lastReadOffset";
-    String s3ObjectKey = "prefix/test/0/0000000000000000002-0000000000000000004";
+    String s3ObjectKey = "prefix/test/0/0000000000000000002-0000000000000000004.txt";
 
     @Test
     public void givenKeyAsJSValue() throws Exception {

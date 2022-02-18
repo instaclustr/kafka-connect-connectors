@@ -101,7 +101,7 @@ public class AwsStorageSourceTaskTest {
         AwsSourceReader mockAwsSourceReader = mock(AwsSourceReader.class);
         S3ObjectInputStream s3ObjectInputStream = mock(S3ObjectInputStream.class);
         TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(s3ObjectInputStream,
-                "prefix/test/0/0000000000000000002-0000000000000000004", "");
+                "prefix/test/0/0000000000000000002-0000000000000000004.txt", "");
 
         doReturn(topicPartitionSegmentParser).when(mockAwsSourceReader).getNextTopicPartitionSegmentParser();
         AmazonServiceException amazonServiceException = new AmazonServiceException("hello");
@@ -119,7 +119,7 @@ public class AwsStorageSourceTaskTest {
         AwsSourceReader mockAwsSourceReader = mock(AwsSourceReader.class);
         S3ObjectInputStream s3ObjectInputStream = mock(S3ObjectInputStream.class);
         TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(s3ObjectInputStream,
-                "prefix/test/0/0000000000000000002-0000000000000000004", "");
+                "prefix/test/0/0000000000000000002-0000000000000000004.txt", "");
 
         doReturn(topicPartitionSegmentParser).when(mockAwsSourceReader).getNextTopicPartitionSegmentParser();
         AmazonClientException amazonClientException = new AmazonClientException("hello");
