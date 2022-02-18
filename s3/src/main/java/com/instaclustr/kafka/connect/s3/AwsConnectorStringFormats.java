@@ -29,7 +29,6 @@ public class AwsConnectorStringFormats {
         return String.format("%019d", value);
     }
 
-    // add file extension at the end
     public static String topicPartitionBufferStorageName(String keyPrefix, TopicPartitionBuffer topicPartitionBuffer) {
         return String.format(AwsConnectorStringFormats.S3_OBJECT_KEY_FORMAT,
                 keyPrefix,

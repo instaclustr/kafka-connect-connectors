@@ -17,6 +17,30 @@ public class TopicPartitionSegmentParserTest {
     String s3ObjectKey = "prefix/test/0/0000000000000000002-0000000000000000004.txt";
 
     @Test
+    public void serDesIsWorkingForWeirdCharacters() throws Exception{
+        TopicPartitionBuffer topicPartitionBuffer = new TopicPartitionBuffer("test", 0);
+        byte[] key = "\"££:::::£`£\"".getBytes();
+        byte[] value = "\"\n&\t&&&$مُنَاقَشَةُ سُبُلِ اِسَّْطْبِيقَاتُ الْحاسُوبِيَّة\"".getBytes();
+
+        SinkRecord record = new SinkRecord("test", 0, Schema.OPTIONAL_BYTES_SCHEMA, key, Schema.OPTIONAL_BYTES_SCHEMA, value, 2, 64L, TimestampType.NO_TIMESTAMP_TYPE);
+        topicPartitionBuffer.putRecord(record);
+
+        InputStream dataInputStream = topicPartitionBuffer.getInputStream();
+        TopicPartitionSegmentParser topicPartitionSegmentParser = new TopicPartitionSegmentParser(dataInputStream, s3ObjectKey, "");
+
+        Assert.assertEquals(topicPartitionBuffer.topic, "test");
+        Assert.assertEquals(topicPartitionBuffer.partition, 0);
+        Assert.assertEquals(topicPartitionBuffer.getEndOffset(), 2L);
+        Assert.assertEquals(topicPartitionBuffer.getStartOffset(), 2L);
+
+        SourceRecord sourceRecord = topicPartitionSegmentParser.getNextRecord(1L, TimeUnit.SECONDS);
+        Assert.assertEquals(sourceRecord.sourceOffset().get(LAST_READ_OFFSET), 2L);
+        Assert.assertEquals((byte[]) sourceRecord.key(), key);
+        Assert.assertEquals((byte[]) sourceRecord.value(), value);
+        Assert.assertEquals(sourceRecord.timestamp(), record.timestamp());
+    }
+
+    @Test
     public void givenKeyAsJSValue() throws Exception {
         TopicPartitionBuffer topicPartitionBuffer = new TopicPartitionBuffer("test", 0);
         byte[] key = "\"hFCBaHIxQh\"".getBytes();

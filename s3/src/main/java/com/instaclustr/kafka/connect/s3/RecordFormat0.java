@@ -1,13 +1,9 @@
 package com.instaclustr.kafka.connect.s3;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.instaclustr.kafka.connect.s3.sink.MaxBufferSizeExceededException;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.kafka.connect.converters.ByteArrayConverter;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.header.ConnectHeaders;
-import org.apache.kafka.connect.header.Header;
-import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.source.SourceRecord;
 import com.google.gson.JsonParser;
@@ -24,6 +20,8 @@ import java.util.Map;
 
 public class RecordFormat0 implements RecordFormat {
     private static Logger logger = LoggerFactory.getLogger(RecordFormat0.class);
+    private Gson gson = (new GsonBuilder()).serializeNulls().setLenient().create();
+    private JsonParser jsonParser = new JsonParser();
 
     private byte[] lineSeparatorBytes = System.lineSeparator().getBytes(StandardCharsets.UTF_8);
 
@@ -32,10 +30,10 @@ public class RecordFormat0 implements RecordFormat {
 
     @Override
     public int writeRecord(final DataOutputStream dataOutputStream, final SinkRecord record, int sizeLimit) throws MaxBufferSizeExceededException, IOException {
-        byte[] keyData = (record.key() == null || Arrays.equals(((byte[]) record.key()), "".getBytes())) ? "null".getBytes() : ((byte[]) record.key());
-        byte[] valueData = (record.value() == null || Arrays.equals(((byte[]) record.value()), "".getBytes())) ? "null".getBytes() : ((byte[]) record.value());
+        String keyData = (record.key() == null || Arrays.equals(((byte[]) record.key()), "".getBytes())) ? null : (asUTF8String((byte[]) record.key()));
+        String valueData = (record.value() == null || Arrays.equals(((byte[]) record.value()), "".getBytes())) ? null : (asUTF8String((byte[]) record.value()));
 
-        String recordStr = recordAsJson(asString(keyData), asString(valueData), record.timestamp(), record.kafkaOffset());
+        String recordStr = constructJson(new Record(keyData, valueData, record.timestamp(), record.kafkaOffset()));
 
         byte[] writableRecord = recordStr.getBytes();
 
@@ -56,52 +54,39 @@ public class RecordFormat0 implements RecordFormat {
                                    final Map<String, Object> sourceOffset, final String topic, final int partition) throws IOException, NumberFormatException {
 
         try {
-            JsonObject jsonObject = new JsonParser().parse(singleRow).getAsJsonObject();
+            JsonObject jsonObject = jsonParser.parse(singleRow).getAsJsonObject();
 
             if (jsonObject.isJsonObject()) {
                 byte[] key = (jsonObject.get("k").isJsonNull()) ? null : readAsObjectOrString(jsonObject, "k").getBytes();
-                logger.info(">>>>>>Constructed JSON key: " + key);
-
                 byte[] value = (jsonObject.get("v").isJsonNull()) ? null : readAsObjectOrString(jsonObject, "v").getBytes();
-                System.out.println(">>>>>>Constructed JSON value: " + value);
-
                 long timestamp = jsonObject.get("t").getAsLong();
-                System.out.println(">>>>>>Constructed JSON timestamp: " + timestamp);
-
                 long offset = jsonObject.get("o").getAsLong();
-                System.out.println(">>>>>>Constructed JSON offset: " + offset);
 
                 sourceOffset.put("lastReadOffset", offset);
                 return new SourceRecord(sourcePartition, sourceOffset, topic, partition, Schema.BYTES_SCHEMA, key, Schema.BYTES_SCHEMA, value, timestamp);
-
             } else {
-                logger.info("Did not receive a json object " + singleRow);
+                logger.error("Did not receive a json object " + singleRow);
                 throw new IOException("Did not receive a json object");
             }
         } catch (Exception e) {
-            logger.info("Could not construct Source Record, reason: " + e.getMessage());
+            logger.error("Could not construct Source Record, reason: " + e.getMessage());
             throw new IOException("Could not construct Source Record, reason: " + e.getMessage());
         }
     }
 
-    private String recordAsJson(Object key, Object value, long timestamp, long offset) {
-        return "{"
-                + "\"k\":" + key + ","
-                + "\"v\":" + value + ","
-                + "\"t\":" + timestamp + ","
-                + "\"o\":" + offset +
-                "}";
+    private String constructJson(Record record) {
+        return gson.toJson(record);
     }
 
     private String readAsObjectOrString(JsonObject jsonObject, String memberName) {
         try {
             return jsonObject.getAsJsonObject(memberName).toString();
         } catch (ClassCastException e) {
-            return "\"" + jsonObject.get(memberName).getAsString() + "\"";
+            return jsonObject.get(memberName).getAsString();
         }
     }
 
-    private String asString(byte[] ba) {
+    private String asUTF8String(byte[] ba) {
         return new String(ba, StandardCharsets.UTF_8);
     }
 }
