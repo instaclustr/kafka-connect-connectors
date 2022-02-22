@@ -10,8 +10,9 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 
 /**
- *  The fixed capacity buffer used to store SinkRecords given to the sink tasks from kafka connect.
- *  The SinkRecords will be encoded into bytes according to the recordFormat specified.
+ * The fixed capacity buffer used to store SinkRecords given to the sink tasks from kafka connect.
+ * The SinkRecords are constructed as json values which are then encoded into bytes.
+ * Each json record is followed by the '\n' character.
  */
 
 public class TopicPartitionBuffer {
@@ -32,7 +33,7 @@ public class TopicPartitionBuffer {
     }
 
     public TopicPartitionBuffer(final String topic, final int partition) throws IOException {
-        this(topic, partition, 3 * 1024 * 1024); // default max is 3mb
+        this(topic, partition, 3 * 1024 * 1024); // default max is 3MB
     }
 
     public TopicPartitionBuffer(final String topic, final int partition, int maxSizeBytes) throws IOException {
@@ -52,7 +53,7 @@ public class TopicPartitionBuffer {
             throw new RecordOutOfOrderException("Record offset must always be larger than the buffer latest record offset");
         }
 
-        if (startOffset==-1){
+        if (startOffset == -1) {
             startOffset = record.kafkaOffset();
         }
 
@@ -70,7 +71,7 @@ public class TopicPartitionBuffer {
         return pipedInputStream;
     }
 
-    public void cleanResources(){
+    public void cleanResources() {
         try {
             this.dataStream.close();
             this.pipedInputStream.close();

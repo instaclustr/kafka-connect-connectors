@@ -33,10 +33,7 @@ public class RecordFormat0 implements RecordFormat {
         String keyData = (record.key() == null || Arrays.equals(((byte[]) record.key()), "".getBytes())) ? null : (asUTF8String((byte[]) record.key()));
         String valueData = (record.value() == null || Arrays.equals(((byte[]) record.value()), "".getBytes())) ? null : (asUTF8String((byte[]) record.value()));
 
-        String recordStr = constructJson(new Record(keyData, valueData, record.timestamp(), record.kafkaOffset()));
-
-        byte[] writableRecord = recordStr.getBytes();
-
+        byte[] writableRecord = constructJson(new Record(keyData, valueData, record.timestamp(), record.kafkaOffset())).getBytes();
         int nextChunkSize = writableRecord.length + lineSeparatorBytes.length;
 
         if (nextChunkSize > sizeLimit) {
@@ -50,11 +47,11 @@ public class RecordFormat0 implements RecordFormat {
     }
 
     @Override
-    public SourceRecord readRecord(final String singleRow, final Map<String, ?> sourcePartition,
+    public SourceRecord readRecord(final String jsonRow, final Map<String, ?> sourcePartition,
                                    final Map<String, Object> sourceOffset, final String topic, final int partition) throws IOException, NumberFormatException {
 
         try {
-            JsonObject jsonObject = jsonParser.parse(singleRow).getAsJsonObject();
+            JsonObject jsonObject = jsonParser.parse(jsonRow).getAsJsonObject();
 
             if (jsonObject.isJsonObject()) {
                 byte[] key = (jsonObject.get("k").isJsonNull()) ? null : readAsObjectOrString(jsonObject, "k").getBytes();
@@ -65,8 +62,8 @@ public class RecordFormat0 implements RecordFormat {
                 sourceOffset.put("lastReadOffset", offset);
                 return new SourceRecord(sourcePartition, sourceOffset, topic, partition, Schema.BYTES_SCHEMA, key, Schema.BYTES_SCHEMA, value, timestamp);
             } else {
-                logger.error("Did not receive a json object " + singleRow);
-                throw new IOException("Did not receive a json object");
+                logger.error("Did not receive a json object " + jsonRow);
+                throw new IOException("Did not receive a json object " + jsonRow);
             }
         } catch (Exception e) {
             logger.error("Could not construct Source Record, reason: " + e.getMessage());

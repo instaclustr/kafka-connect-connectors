@@ -1,14 +1,11 @@
 package com.instaclustr.kafka.connect.s3.source;
 
-import com.amazonaws.AmazonClientException;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.instaclustr.kafka.connect.s3.AwsConnectorStringFormats;
 import com.instaclustr.kafka.connect.s3.RecordFormat;
 import com.instaclustr.kafka.connect.s3.RecordFormat0;
 import org.apache.kafka.connect.source.SourceRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -18,15 +15,14 @@ import java.util.regex.Matcher;
 
 /**
  * This class handles converting S3Objects into SourceRecords using the relevant RecordFormat
+ * This class is used in order to read the records within each segment (topic/partition/startOffset-endOffset.txt).
+ * Foreach such segment we are loading all the records split by '\n' as an Iterator, constructing each record as a SourceRecord.
  */
 
 public class TopicPartitionSegmentParser implements Iterator<String> {
-    private static Logger logger = LoggerFactory.getLogger(TopicPartitionSegmentParser.class);
-
     private final String targetTopic;
     private BufferedReader bufferedReader;
     private Iterator<String> lines;
-    private long lineNumber;
     private TimeLimiter timeLimiter;
     private final String topic;
     private String s3ObjectKey;
@@ -61,7 +57,6 @@ public class TopicPartitionSegmentParser implements Iterator<String> {
         }
         this.bufferedReader = new BufferedReader(new InputStreamReader(s3ObjectInputStream, StandardCharsets.UTF_8));
         this.lines = this.bufferedReader.lines().iterator();
-        this.lineNumber = -1;
         this.s3ObjectKey = s3ObjectKey;
         this.topicPrefix = topicPrefix;
         this.targetTopic = AwsConnectorStringFormats.generateTargetTopic(topicPrefix, topic);
@@ -116,7 +111,6 @@ public class TopicPartitionSegmentParser implements Iterator<String> {
 
     @Override
     public String next() {
-        lineNumber += 1;
         if (!lines.hasNext()) {
             throw new NoSuchElementException("Reach the end of the Source Data");
         }
