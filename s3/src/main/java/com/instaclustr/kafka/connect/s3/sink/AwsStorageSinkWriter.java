@@ -14,18 +14,21 @@ public class AwsStorageSinkWriter {
     private TransferManager transferManager;
     private String bucketName;
     private String keyPrefix;
+    private String fileExtension;
 
     public AwsStorageSinkWriter(final TransferManager transferManager, final String bucket, final String keyPrefix) {
         this.transferManager = transferManager;
         this.bucketName = bucket;
         this.keyPrefix = AwsConnectorStringFormats.parseS3Prefix(keyPrefix);
+        this.fileExtension = AwsConnectorStringFormats.FILE_EXTENSION;
     }
 
     public void writeDataSegment(final TopicPartitionBuffer topicPartitionBuffer) throws IOException, InterruptedException {
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(topicPartitionBuffer.getInputStreamLength());
+        String storageName = AwsConnectorStringFormats.topicPartitionBufferStorageName(keyPrefix, topicPartitionBuffer);
         PutObjectRequest request = new PutObjectRequest(bucketName
-                , AwsConnectorStringFormats.topicPartitionBufferStorageName(keyPrefix, topicPartitionBuffer)
+                , storageName + fileExtension
                 , topicPartitionBuffer.getInputStream()
                 , metadata);
         Upload upload = transferManager.upload(request);
