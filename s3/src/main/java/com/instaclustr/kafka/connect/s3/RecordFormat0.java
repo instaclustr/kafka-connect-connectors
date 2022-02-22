@@ -1,126 +1,89 @@
 package com.instaclustr.kafka.connect.s3;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.instaclustr.kafka.connect.s3.sink.MaxBufferSizeExceededException;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.kafka.connect.converters.ByteArrayConverter;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.header.ConnectHeaders;
-import org.apache.kafka.connect.header.Header;
-import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.source.SourceRecord;
-import org.apache.kafka.connect.storage.SimpleHeaderConverter;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
+import java.io.*;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Map;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class RecordFormat0 implements RecordFormat {
-    public static final int RECORD_METADATA_LENGTH = Integer.BYTES * 3 + Long.BYTES * 2; //key, value, header length + offset length + timestamp
+    private static Logger logger = LoggerFactory.getLogger(RecordFormat0.class);
+    private Gson gson = (new GsonBuilder()).serializeNulls().setLenient().create();
+    private JsonParser jsonParser = new JsonParser();
 
-    private ByteArrayConverter byteArrayConverter;
-    private SimpleHeaderConverter headerConverter;
-
+    private byte[] lineSeparatorBytes = System.lineSeparator().getBytes(StandardCharsets.UTF_8);
 
     public RecordFormat0() {
-        byteArrayConverter = new ByteArrayConverter();
-        headerConverter = new SimpleHeaderConverter();
     }
 
     @Override
     public int writeRecord(final DataOutputStream dataOutputStream, final SinkRecord record, int sizeLimit) throws MaxBufferSizeExceededException, IOException {
-        byte[] keyData = byteArrayConverter.fromConnectData(record.topic(), record.keySchema(), record.key());
-        byte[] valueData = byteArrayConverter.fromConnectData(record.topic(), record.valueSchema(), record.value());
-        List<Pair<byte[], byte[]>> headerData = new LinkedList<>();
+        String keyData = (record.key() == null || Arrays.equals(((byte[]) record.key()), "".getBytes())) ? null : (asUTF8String((byte[]) record.key()));
+        String valueData = (record.value() == null || Arrays.equals(((byte[]) record.value()), "".getBytes())) ? null : (asUTF8String((byte[]) record.value()));
 
-        int headerDataTotalLength = 0;
-        if (record.headers() != null) {
-            for (Header header : record.headers()) {
-                ImmutablePair<byte[], byte[]> headerBytesPair = new ImmutablePair<>(
-                        header.key().getBytes(UTF_8),
-                        this.headerConverter.fromConnectHeader(record.topic(), header.key(), header.schema(), header.value()));
-                if (headerBytesPair.right != null) {
-                    headerDataTotalLength += headerBytesPair.left.length + Integer.BYTES * 2 + headerBytesPair.right.length;
-                } else {
-                    headerDataTotalLength += headerBytesPair.left.length + Integer.BYTES * 2;
-                }
-                headerData.add(headerBytesPair);
-            }
-        }
-
-        int keyLength = (keyData == null) ? -1 : keyData.length;
-        int valueLength = (valueData == null) ? -1 : valueData.length;
-
-        if (keyData == null) keyData = new byte[0];
-        if (valueData == null) valueData = new byte[0];
-
-        int nextChunkSize = RECORD_METADATA_LENGTH + keyData.length + valueData.length + headerDataTotalLength;
+        byte[] writableRecord = constructJson(new Record(keyData, valueData, record.timestamp(), record.kafkaOffset())).getBytes();
+        int nextChunkSize = writableRecord.length + lineSeparatorBytes.length;
 
         if (nextChunkSize > sizeLimit) {
             throw new MaxBufferSizeExceededException();
         }
 
-        dataOutputStream.writeLong(record.kafkaOffset());
-        dataOutputStream.writeLong(record.timestamp());
-        dataOutputStream.writeInt(keyLength);
-        dataOutputStream.writeInt(valueLength);
-        dataOutputStream.writeInt(headerData.size());
-        dataOutputStream.write(keyData);
-        dataOutputStream.write(valueData);
-        for (Pair<byte[], byte[]> headerDataPair : headerData) {
-            dataOutputStream.writeInt(headerDataPair.getLeft().length); //key
-            dataOutputStream.write(headerDataPair.getLeft());
-            if (headerDataPair.getRight() != null) {
-                dataOutputStream.writeInt(headerDataPair.getRight().length); //value
-                dataOutputStream.write(headerDataPair.getRight());
-            } else {
-                dataOutputStream.writeInt(-1);
-            }
-        }
+        dataOutputStream.write(writableRecord);
+        dataOutputStream.write(lineSeparatorBytes);
 
         return nextChunkSize;
     }
 
     @Override
-    public SourceRecord readRecord(final DataInputStream dataInputStream, final Map<String, ?> sourcePartition, final Map<String, Object> sourceOffset, final String topic, final int partition) throws IOException {
-        long offset = dataInputStream.readLong();
-        long timestamp = dataInputStream.readLong();
-        int keyLength = dataInputStream.readInt();
-        int valueLength = dataInputStream.readInt();
-        int headersCount = dataInputStream.readInt();
+    public SourceRecord readRecord(final String jsonRow, final Map<String, ?> sourcePartition,
+                                   final Map<String, Object> sourceOffset, final String topic, final int partition) throws IOException, NumberFormatException {
 
-        byte[] keyHolder;
-        byte[] valueHolder;
-        if (keyLength == -1) {
-            keyHolder = null;
-        } else {
-            keyHolder = dataInputStream.readNBytes(keyLength);
-        }
-        if (valueLength == -1) {
-            valueHolder = null;
-        } else {
-            valueHolder = dataInputStream.readNBytes(valueLength);
-        }
-        Headers headers = new ConnectHeaders();
+        try {
+            JsonObject jsonObject = jsonParser.parse(jsonRow).getAsJsonObject();
 
-        for (int i = 0; i < headersCount; i++) {
-            int headerKeyLength = dataInputStream.readInt();
-            String key = new String(dataInputStream.readNBytes(headerKeyLength), UTF_8);
-            int headerValueLength = dataInputStream.readInt();
-            if (headerValueLength == -1) {
-                headers.add(key, this.headerConverter.toConnectHeader(topic, key, null));
+            if (jsonObject.isJsonObject()) {
+                byte[] key = (jsonObject.get("k").isJsonNull()) ? null : readAsObjectOrString(jsonObject, "k").getBytes();
+                byte[] value = (jsonObject.get("v").isJsonNull()) ? null : readAsObjectOrString(jsonObject, "v").getBytes();
+                long timestamp = jsonObject.get("t").getAsLong();
+                long offset = jsonObject.get("o").getAsLong();
+
+                sourceOffset.put("lastReadOffset", offset);
+                return new SourceRecord(sourcePartition, sourceOffset, topic, partition, Schema.BYTES_SCHEMA, key, Schema.BYTES_SCHEMA, value, timestamp);
             } else {
-                headers.add(key, this.headerConverter.toConnectHeader(topic, key, dataInputStream.readNBytes(headerValueLength)));
+                logger.error("Did not receive a json object " + jsonRow);
+                throw new IOException("Did not receive a json object " + jsonRow);
             }
+        } catch (Exception e) {
+            logger.error("Could not construct Source Record, reason: " + e.getMessage());
+            throw new IOException("Could not construct Source Record, reason: " + e.getMessage());
         }
+    }
 
-        sourceOffset.put("lastReadOffset", offset);
-        return new SourceRecord(sourcePartition, sourceOffset, topic, partition, Schema.BYTES_SCHEMA, keyHolder, Schema.BYTES_SCHEMA, valueHolder, timestamp, headers);
+    private String constructJson(Record record) {
+        return gson.toJson(record);
+    }
+
+    private String readAsObjectOrString(JsonObject jsonObject, String memberName) {
+        try {
+            return jsonObject.getAsJsonObject(memberName).toString();
+        } catch (ClassCastException e) {
+            return jsonObject.get(memberName).getAsString();
+        }
+    }
+
+    private String asUTF8String(byte[] ba) {
+        return new String(ba, StandardCharsets.UTF_8);
     }
 }

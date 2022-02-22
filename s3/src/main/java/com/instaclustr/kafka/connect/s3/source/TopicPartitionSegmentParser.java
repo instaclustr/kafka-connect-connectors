@@ -1,6 +1,5 @@
 package com.instaclustr.kafka.connect.s3.source;
 
-import com.amazonaws.AmazonClientException;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.instaclustr.kafka.connect.s3.AwsConnectorStringFormats;
@@ -8,22 +7,22 @@ import com.instaclustr.kafka.connect.s3.RecordFormat;
 import com.instaclustr.kafka.connect.s3.RecordFormat0;
 import org.apache.kafka.connect.source.SourceRecord;
 
-import java.io.DataInputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
 
 /**
  * This class handles converting S3Objects into SourceRecords using the relevant RecordFormat
+ * This class is used in order to read the records within each segment (topic/partition/startOffset-endOffset.txt).
+ * Foreach such segment we are loading all the records split by '\n' as an Iterator, constructing each record as a SourceRecord.
  */
 
-public class TopicPartitionSegmentParser {
-
+public class TopicPartitionSegmentParser implements Iterator<String> {
     private final String targetTopic;
-    private DataInputStream dataInputStream;
+    private BufferedReader bufferedReader;
+    private Iterator<String> lines;
     private TimeLimiter timeLimiter;
     private final String topic;
     private String s3ObjectKey;
@@ -56,7 +55,8 @@ public class TopicPartitionSegmentParser {
         } else {
             throw new IllegalArgumentException("filename is not in a valid format");
         }
-        this.dataInputStream = new DataInputStream(s3ObjectInputStream);
+        this.bufferedReader = new BufferedReader(new InputStreamReader(s3ObjectInputStream, StandardCharsets.UTF_8));
+        this.lines = this.bufferedReader.lines().iterator();
         this.s3ObjectKey = s3ObjectKey;
         this.topicPrefix = topicPrefix;
         this.targetTopic = AwsConnectorStringFormats.generateTargetTopic(topicPrefix, topic);
@@ -65,7 +65,7 @@ public class TopicPartitionSegmentParser {
     }
 
     public void closeResources() throws IOException, InterruptedException {
-        dataInputStream.close();
+        bufferedReader.close();
         this.singleThreadExecutor.shutdownNow();
         this.singleThreadExecutor.awaitTermination(5L, TimeUnit.SECONDS);
     }
@@ -73,8 +73,7 @@ public class TopicPartitionSegmentParser {
     private SourceRecord getNextRecord() throws IOException { //blocking call
         try {
             if (recordFormat == null) {
-                int version = dataInputStream.readInt();
-                if (version == 0) {
+                if (bufferedReader.ready()) {
                     recordFormat = new RecordFormat0();
                 } else {
                     throw new IOException("Unknown version format");
@@ -90,8 +89,8 @@ public class TopicPartitionSegmentParser {
             sourceOffset.put("endOffset", AwsConnectorStringFormats.convertLongIntoLexySortableString(this.endOffset));
             sourceOffset.put("s3ObjectKey", s3ObjectKey);
 
-            return recordFormat.readRecord(dataInputStream, sourcePartition, sourceOffset, this.targetTopic, this.partition);
-        } catch (EOFException e) {
+            return recordFormat.readRecord(next(), sourcePartition, sourceOffset, this.targetTopic, this.partition);
+        } catch (EOFException | NoSuchElementException e) {
             return null;
         }
     }
@@ -103,5 +102,18 @@ public class TopicPartitionSegmentParser {
             this.closeResources(); //not possible to read from this stream after a timeout as read positions gets messed up
             throw e;
         }
+    }
+
+    @Override
+    public boolean hasNext() {
+        return lines.hasNext();
+    }
+
+    @Override
+    public String next() {
+        if (!lines.hasNext()) {
+            throw new NoSuchElementException("Reach the end of the Source Data");
+        }
+        return lines.next().trim();
     }
 }
