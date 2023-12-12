@@ -42,7 +42,7 @@ public class AwsStorageConnectorCommonConfig {
                 .define(S3_KEY_PREFIX, ConfigDef.Type.STRING, "", new RegexStringValidator(Pattern.compile("^$|[-a-zA-Z0-9_./]+$"), "prefix can only contain alphanumerics, underscores(_), hyphens(-), periods(.) and slashes(/) only."),
                         ConfigDef.Importance.HIGH, "Path prefix for the objects written into S3")
                 .define(AWS_ACCESS_KEY_ID, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "AWS access key id")
-                .define(AWS_SECRET_KEY, ConfigDef.Type.PASSWORD, ConfigDef.Importance.HIGH, "AWS access secret key")
+                .define(AWS_SECRET_KEY, ConfigDef.Type.PASSWORD, null, ConfigDef.Importance.HIGH, "AWS access secret key")
                 .define(AWS_REGION, ConfigDef.Type.STRING, DEFAULT_AWS_REGION, ConfigDef.Importance.MEDIUM, String.format("AWS client region, if not set will use %s", DEFAULT_AWS_REGION))
                 .define(AWS_ENDPOINT, ConfigDef.Type.STRING, ConfigDef.Importance.MEDIUM, "AWS endpoint")
                 .define(AWS_IAM_ROLE_ARN, ConfigDef.Type.STRING, "", ConfigDef.Importance.HIGH, "");
