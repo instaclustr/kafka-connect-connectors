@@ -35,11 +35,11 @@ public class TransferManagerProvider {
     }
 
     public static AmazonS3ClientBuilder getS3ClientBuilderWithRegionAndCredentials(final Map<String, String> config) {
-        String accessKey = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_ACCESS_KEY_ID);
-        String secret = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_SECRET_KEY);
-        String region = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_REGION);
-        String endpoint = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_ENDPOINT);
-        String roleArn = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_IAM_ROLE_ARN);
+        String accessKey = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_ACCESS_KEY_ID, "AWS_ACCESS_KEY_ID");
+        String secret = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_SECRET_KEY, "AWS_SECRET_KEY");
+        String region = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_REGION, "AWS_REGION");
+        String endpoint = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_ENDPOINT, "AWS_ENDPOINT");
+        String roleArn = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_IAM_ROLE_ARN, "AWS_IAM_ROLE_ARN");
 
         AWSStaticCredentialsProvider awsStaticCredentialsProvider = new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secret));
         AWSCredentialsProvider awsCredentialsProvider;
@@ -66,7 +66,6 @@ public class TransferManagerProvider {
         AmazonS3ClientBuilder clientBuilder = AmazonS3ClientBuilder.standard()
                 .withCredentials(awsCredentialsProvider);
 
-        log.debug("endpoint {}", endpoint);
         if (!endpoint.isBlank()) {
             AwsClientBuilder.EndpointConfiguration endpointConfig = new AwsClientBuilder.EndpointConfiguration(endpoint, "gra");
             clientBuilder.withEndpointConfiguration(endpointConfig);
@@ -76,8 +75,8 @@ public class TransferManagerProvider {
         return clientBuilder;
     }
 
-    private static String getFromConfigOrEnvironment(final Map<String, String> config, final String key) {
-        String retVal = System.getProperty(key);
+    private static String getFromConfigOrEnvironment(final Map<String, String> config, final String key, final String envKey) {
+        String retVal = System.getenv(envKey);
         if (config.containsKey(key)) {
             retVal = config.get(key);
         }
