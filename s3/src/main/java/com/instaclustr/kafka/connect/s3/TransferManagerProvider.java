@@ -5,6 +5,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.transfer.TransferManager;
@@ -37,6 +38,7 @@ public class TransferManagerProvider {
         String accessKey = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_ACCESS_KEY_ID);
         String secret = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_SECRET_KEY);
         String region = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_REGION);
+        String endpoint = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_ENDPOINT);
         String roleArn = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_IAM_ROLE_ARN);
 
         AWSStaticCredentialsProvider awsStaticCredentialsProvider = new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secret));
@@ -64,12 +66,13 @@ public class TransferManagerProvider {
         AmazonS3ClientBuilder clientBuilder = AmazonS3ClientBuilder.standard()
                 .withCredentials(awsCredentialsProvider);
 
-        if (region == null) {
-            region = AwsStorageConnectorCommonConfig.DEFAULT_AWS_REGION;
-            clientBuilder.enableForceGlobalBucketAccess();
-            log.info("No region defined. Using {} and force global bucket access", AwsStorageConnectorCommonConfig.DEFAULT_AWS_REGION);
+        log.debug("endpoint {}", endpoint);
+        if (!endpoint.isBlank()) {
+            AwsClientBuilder.EndpointConfiguration endpointConfig = new AwsClientBuilder.EndpointConfiguration(endpoint, "gra");
+            clientBuilder.withEndpointConfiguration(endpointConfig);
+        } else {
+            clientBuilder.withRegion(Regions.fromName(region).getName());
         }
-        clientBuilder.withRegion(Regions.fromName(region).getName()); //using fromName to validate the region value
         return clientBuilder;
     }
 

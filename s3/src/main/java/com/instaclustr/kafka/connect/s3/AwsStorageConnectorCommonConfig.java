@@ -22,6 +22,8 @@ public class AwsStorageConnectorCommonConfig {
 
     public static final String AWS_REGION = "aws.region";
 
+    public static final String AWS_ENDPOINT = "aws.endpoint";
+
     public static final String S3_KEY_PREFIX = "prefix";
 
     public static final String AWS_SECRET_KEY = "aws.secretKey";
@@ -42,6 +44,7 @@ public class AwsStorageConnectorCommonConfig {
                 .define(AWS_ACCESS_KEY_ID, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "AWS access key id")
                 .define(AWS_SECRET_KEY, ConfigDef.Type.PASSWORD, ConfigDef.Importance.HIGH, "AWS access secret key")
                 .define(AWS_REGION, ConfigDef.Type.STRING, DEFAULT_AWS_REGION, ConfigDef.Importance.MEDIUM, String.format("AWS client region, if not set will use %s", DEFAULT_AWS_REGION))
+                .define(AWS_ENDPOINT, ConfigDef.Type.STRING, ConfigDef.Importance.MEDIUM, "AWS endpoint")
                 .define(AWS_IAM_ROLE_ARN, ConfigDef.Type.STRING, "", ConfigDef.Importance.HIGH, "");
         return configDef;
     }
