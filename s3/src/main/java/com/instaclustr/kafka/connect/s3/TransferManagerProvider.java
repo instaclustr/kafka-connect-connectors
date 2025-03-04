@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class TransferManagerProvider {
     private TransferManager transferManager;
@@ -64,12 +63,20 @@ public class TransferManagerProvider {
         AmazonS3ClientBuilder clientBuilder = AmazonS3ClientBuilder.standard()
                 .withCredentials(awsCredentialsProvider);
 
-        if (region == null) {
+        if (region == null && StringUtils.isBlank(AwsStorageConnectorCommonConfig.S3_ENDPOINT)) {
             region = AwsStorageConnectorCommonConfig.DEFAULT_AWS_REGION;
             clientBuilder.enableForceGlobalBucketAccess();
             log.info("No region defined. Using {} and force global bucket access", AwsStorageConnectorCommonConfig.DEFAULT_AWS_REGION);
         }
-        clientBuilder.withRegion(Regions.fromName(region).getName()); //using fromName to validate the region value
+
+        if (StringUtils.isNotBlank(AwsStorageConnectorCommonConfig.S3_ENDPOINT)) {
+            AmazonS3ClientBuilder.EndpointConfiguration endpointConfiguration =
+                    new AmazonS3ClientBuilder.EndpointConfiguration(getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.S3_ENDPOINT), region);
+            clientBuilder.withEndpointConfiguration(endpointConfiguration);
+        } else {
+            clientBuilder.withRegion(Regions.fromName(region).getName()); //using fromName to validate the region value
+        }
+
         return clientBuilder;
     }
 

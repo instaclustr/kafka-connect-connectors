@@ -19,15 +19,11 @@ import java.util.regex.Pattern;
 
 public class AwsStorageConnectorCommonConfig {
     public static final String BUCKET = "aws.s3.bucket";
-
     public static final String AWS_REGION = "aws.region";
-
     public static final String S3_KEY_PREFIX = "prefix";
-
     public static final String AWS_SECRET_KEY = "aws.secretKey";
-
     public static final String AWS_ACCESS_KEY_ID = "aws.accessKeyId";
-
+    public static final String S3_ENDPOINT = "s3.endpoint";
     public static final String AWS_IAM_ROLE_ARN = "aws.role.arn";
 
     public static final String DEFAULT_AWS_REGION = Regions.DEFAULT_REGION.getName();
