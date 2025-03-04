@@ -9,9 +9,11 @@ import java.util.Map;
 public class Main {
     public static void main(String[] args) {
         Map<String, String> configMap = new HashMap<>();
-        configMap.put(AwsStorageConnectorCommonConfig.BUCKET, "niluka-custom-connector");
+        configMap.put(AwsStorageConnectorCommonConfig.BUCKET, "onprem-test");
         configMap.put(AwsStorageConnectorCommonConfig.AWS_REGION, "us-east-1");
-        configMap.put(AwsStorageConnectorCommonConfig.S3_KEY_PREFIX, "niluka/");
+        //configMap.put(AwsStorageConnectorCommonConfig.S3_KEY_PREFIX, "niluka/");
+        configMap.put(AwsStorageConnectorCommonConfig.AWS_SECRET_KEY, "REMOVED");
+        configMap.put(AwsStorageConnectorCommonConfig.AWS_ACCESS_KEY_ID, "REMOVED");
         configMap.put(AwsStorageConnectorCommonConfig.AWS_IAM_ROLE_ARN, "");
 
         AwsStorageSourceConnector connector = new AwsStorageSourceConnector();

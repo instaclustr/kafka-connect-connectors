@@ -58,7 +58,7 @@ public class AwsStorageConnectorCommonConfig {
     public static void checkObjects(final Map<String, String> sentConfigMap, final Config configObject) {
         String s3BucketName = sentConfigMap.get(BUCKET);
         String awsRegion = sentConfigMap.get(AWS_REGION);
-        AmazonS3 s3Client = TransferManagerProvider.getS3ClientBuilderWithRegionAndCredentials(sentConfigMap).build();
+        AmazonS3 s3Client = TransferManagerProvider.getAnyS3ClientBuilderWithRegionAndCredentials(sentConfigMap, "https://webscalenext.netapp.com/").build();
         ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(s3BucketName);
         ListObjectsV2Result result;
 
