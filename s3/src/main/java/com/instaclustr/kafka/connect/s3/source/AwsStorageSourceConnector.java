@@ -137,6 +137,12 @@ public class AwsStorageSourceConnector extends SourceConnector {
         return config;
     }
 
+    public Config checkObjects(final Map<String, String> connectorConfigs) {
+        Config config = super.validate(connectorConfigs);
+        AwsStorageConnectorCommonConfig.checkObjects(connectorConfigs, config);
+        return config;
+    }
+
     @Override
     public ConfigDef config() {
         ConfigDef configDef = AwsStorageConnectorCommonConfig.conf();

@@ -2,8 +2,7 @@ package com.instaclustr.kafka.connect.s3;
 
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.Region;
+import com.amazonaws.services.s3.model.*;
 import com.amazonaws.services.securitytoken.model.AWSSecurityTokenServiceException;
 import org.apache.kafka.common.config.Config;
 import org.apache.kafka.common.config.ConfigDef;
@@ -53,6 +52,25 @@ public class AwsStorageConnectorCommonConfig {
             return value;
         });
         configValue.addErrorMessage(errorMessage);
+    }
+
+
+    public static void checkObjects(final Map<String, String> sentConfigMap, final Config configObject) {
+        String s3BucketName = sentConfigMap.get(BUCKET);
+        String awsRegion = sentConfigMap.get(AWS_REGION);
+        AmazonS3 s3Client = TransferManagerProvider.getS3ClientBuilderWithRegionAndCredentials(sentConfigMap).build();
+        ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(s3BucketName);
+        ListObjectsV2Result result;
+
+        do {
+            result = s3Client.listObjectsV2(req);
+
+            for (S3ObjectSummary objectSummary : result.getObjectSummaries()) {
+                System.out.println(" - " + objectSummary.getKey());
+            }
+            req.setContinuationToken(result.getNextContinuationToken());
+        } while (result.isTruncated());
+
     }
 
     public static void verifyS3CredentialsAndBucketInfo(final Map<String, String> sentConfigMap, final Config configObject) {
