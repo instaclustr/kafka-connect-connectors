@@ -23,8 +23,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-public class AwsStorageSourceConnector extends SourceConnector {
-    private static Logger log = LoggerFactory.getLogger(AwsStorageSourceConnector.class);
+public class AwsStorageSourceConnectorTest extends SourceConnector {
+    private static Logger log = LoggerFactory.getLogger(AwsStorageSourceConnectorTest.class);
     public static final String SOURCE_TOPICS = "s3.topics";
     public static final String SINK_TOPIC_PREFIX = "kafka.topicPrefix";
     public static final String MAX_RECORDS_PER_SECOND = "maxRecordsPerSecond";
@@ -39,10 +39,10 @@ public class AwsStorageSourceConnector extends SourceConnector {
     private TransferManagerProvider transferManagerProvider;
 
 
-    public AwsStorageSourceConnector() { //do not remove, kafka connect usage
+    public AwsStorageSourceConnectorTest() { //do not remove, kafka connect usage
     }
 
-    public AwsStorageSourceConnector(TransferManagerProvider transferManagerProvider, StoredTopicPartitionInfoRetriever storedTopicPartitionInfoRetriever) {
+    public AwsStorageSourceConnectorTest(TransferManagerProvider transferManagerProvider, StoredTopicPartitionInfoRetriever storedTopicPartitionInfoRetriever) {
         this.storedTopicPartitionInfoRetriever = storedTopicPartitionInfoRetriever;
         this.transferManagerProvider = transferManagerProvider;
     }

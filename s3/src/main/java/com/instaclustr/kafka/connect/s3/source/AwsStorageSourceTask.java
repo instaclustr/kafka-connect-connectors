@@ -3,7 +3,6 @@ package com.instaclustr.kafka.connect.s3.source;
 import com.amazonaws.AmazonClientException;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.instaclustr.kafka.connect.s3.AwsConnectorStringFormats;
 import com.instaclustr.kafka.connect.s3.AwsStorageConnectorCommonConfig;
 import com.instaclustr.kafka.connect.s3.TransferManagerProvider;
@@ -56,26 +55,26 @@ public class AwsStorageSourceTask extends SourceTask {
     public void start(Map<String, String> map) {
         this.configMap = map;
         this.transferManagerProvider = new TransferManagerProvider(this.configMap);
-        String tasksString = map.getOrDefault(AwsStorageSourceConnector.WORKER_TASK_PARTITIONS_ENTRY, "").trim();
+        String tasksString = map.getOrDefault(AwsStorageSourceConnectorTest.WORKER_TASK_PARTITIONS_ENTRY, "").trim();
         List<String> topicPartitionList = StringUtils.isBlank(tasksString) ? Collections.emptyList() : Arrays.asList(tasksString.split(","));
         this.awsSourceReader = new AwsSourceReader(
                 this.transferManagerProvider.get().getAmazonS3Client(),
                 this.configMap.get(AwsStorageConnectorCommonConfig.BUCKET),
                 AwsConnectorStringFormats.parseS3Prefix(this.configMap.getOrDefault(AwsStorageConnectorCommonConfig.S3_KEY_PREFIX, "")),
-                this.configMap.getOrDefault(AwsStorageSourceConnector.SINK_TOPIC_PREFIX, ""),
+                this.configMap.getOrDefault(AwsStorageSourceConnectorTest.SINK_TOPIC_PREFIX, ""),
                 this.loadSourceConnectorTopicPartitionOffsets(topicPartitionList));
         if (topicPartitionList.isEmpty()) {
             log.info("No topic partitions assigned");
         } else {
             log.info("Assigned topics and partitions : {}", tasksString);
         }
-        this.pollRecordRateLimiter = RateLimiter.create(Integer.parseInt(this.configMap.getOrDefault(AwsStorageSourceConnector.MAX_RECORDS_PER_SECOND, AwsStorageSourceConnector.MAX_RECORDS_PER_SECOND_DEFAULT)));
+        this.pollRecordRateLimiter = RateLimiter.create(Integer.parseInt(this.configMap.getOrDefault(AwsStorageSourceConnectorTest.MAX_RECORDS_PER_SECOND, AwsStorageSourceConnectorTest.MAX_RECORDS_PER_SECOND_DEFAULT)));
         lastPausedQueueScanTimeStamp = System.currentTimeMillis();
     }
 
     public Map<String, Map<String, Object>> loadSourceConnectorTopicPartitionOffsets(List<String> topicPartitions) {
         Map<String, Map<String, Object>> topicPartitionOffsets = new HashMap<>();
-        String targetTopicPrefix = this.configMap.getOrDefault(AwsStorageSourceConnector.SINK_TOPIC_PREFIX, "");
+        String targetTopicPrefix = this.configMap.getOrDefault(AwsStorageSourceConnectorTest.SINK_TOPIC_PREFIX, "");
         List<Map<String, String>> offsetPartitions = topicPartitions.stream().map(
                 tp -> {
                     HashMap<String, String> offsetInfo = new HashMap<>();
