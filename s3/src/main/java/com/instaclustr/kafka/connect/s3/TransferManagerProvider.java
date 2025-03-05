@@ -37,6 +37,7 @@ public class TransferManagerProvider {
         String secret = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_SECRET_KEY);
         String region = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_REGION);
         String roleArn = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_IAM_ROLE_ARN);
+        String endpoint = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.S3_ENDPOINT);
 
         AWSStaticCredentialsProvider awsStaticCredentialsProvider = new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secret));
         AWSCredentialsProvider awsCredentialsProvider;
@@ -70,9 +71,8 @@ public class TransferManagerProvider {
         }
 
         if (StringUtils.isNotBlank(AwsStorageConnectorCommonConfig.S3_ENDPOINT)) {
-            AmazonS3ClientBuilder.EndpointConfiguration endpointConfiguration =
-                    new AmazonS3ClientBuilder.EndpointConfiguration(getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.S3_ENDPOINT), region);
-            clientBuilder.withEndpointConfiguration(endpointConfiguration);
+            AmazonS3ClientBuilder.EndpointConfiguration endpointConfiguration = new AmazonS3ClientBuilder.EndpointConfiguration(endpoint, region);
+            clientBuilder.withEndpointConfiguration(endpointConfiguration).withPathStyleAccessEnabled(true);
         } else {
             clientBuilder.withRegion(Regions.fromName(region).getName()); //using fromName to validate the region value
         }

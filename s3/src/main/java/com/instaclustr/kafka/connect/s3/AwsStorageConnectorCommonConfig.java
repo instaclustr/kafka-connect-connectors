@@ -5,6 +5,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.securitytoken.model.AWSSecurityTokenServiceException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.Config;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigValue;
@@ -56,9 +57,10 @@ public class AwsStorageConnectorCommonConfig {
         try {
             String s3BucketName = sentConfigMap.get(BUCKET);
             String awsRegion = sentConfigMap.get(AWS_REGION);
+            String endpoint = sentConfigMap.get(S3_ENDPOINT);
             AmazonS3 s3Client = TransferManagerProvider.getS3ClientBuilderWithRegionAndCredentials(sentConfigMap).build();
             if (s3Client.doesBucketExistV2(s3BucketName)) {
-                if (awsRegion != null) {
+                if (StringUtils.isBlank(endpoint) && awsRegion != null) {
                     String bucketRegion = Region.fromValue(s3Client.getBucketLocation(s3BucketName)).toAWSRegion().getName();
                     if (!bucketRegion.equals(awsRegion)) {
                         addErrorMessageToConfigObject(configObject, AWS_REGION, String.format("Defined region(%s) is not the same as the bucket region(%s)", awsRegion, bucketRegion));
