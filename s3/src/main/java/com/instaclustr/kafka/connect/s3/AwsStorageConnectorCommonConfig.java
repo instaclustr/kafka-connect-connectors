@@ -38,7 +38,9 @@ public class AwsStorageConnectorCommonConfig {
                 .define(AWS_ACCESS_KEY_ID, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "AWS access key id")
                 .define(AWS_SECRET_KEY, ConfigDef.Type.PASSWORD, ConfigDef.Importance.HIGH, "AWS access secret key")
                 .define(AWS_REGION, ConfigDef.Type.STRING, DEFAULT_AWS_REGION, ConfigDef.Importance.MEDIUM, String.format("AWS client region, if not set will use %s", DEFAULT_AWS_REGION))
-                .define(AWS_IAM_ROLE_ARN, ConfigDef.Type.STRING, "", ConfigDef.Importance.HIGH, "");
+                .define(AWS_IAM_ROLE_ARN, ConfigDef.Type.STRING, "", ConfigDef.Importance.HIGH, "")
+                .define(S3_ENDPOINT, ConfigDef.Type.STRING, "", ConfigDef.Importance.HIGH, "")
+                .define(S3_ENDPOINT, ConfigDef.Type.STRING, ConfigDef.Importance.MEDIUM, "Optional S3 endpoint URL used to configure non-aws S3 providers");
         return configDef;
     }
 
@@ -91,7 +93,7 @@ public class AwsStorageConnectorCommonConfig {
                     throw new ConnectException(String.format("Unknown Amazon S3 exception while validating config, %s", e.getErrorCode()), e);
             }
         } catch (IllegalArgumentException e) {
-            addErrorMessageToConfigObject(configObject, AWS_REGION, "The defined aws.region is invalid");
+            addErrorMessageToConfigObject(configObject, AWS_REGION, String.format("The defined aws.region is invalid %s", e.getMessage()));
         }
     }
 
