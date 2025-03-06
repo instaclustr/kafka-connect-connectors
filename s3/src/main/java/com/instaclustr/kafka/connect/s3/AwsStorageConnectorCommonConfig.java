@@ -59,10 +59,9 @@ public class AwsStorageConnectorCommonConfig {
         try {
             String s3BucketName = sentConfigMap.get(BUCKET);
             String awsRegion = sentConfigMap.get(AWS_REGION);
-            String endpoint = sentConfigMap.get(S3_ENDPOINT);
             AmazonS3 s3Client = TransferManagerProvider.getS3ClientBuilderWithRegionAndCredentials(sentConfigMap).build();
             if (s3Client.doesBucketExistV2(s3BucketName)) {
-                if (StringUtils.isBlank(endpoint) && awsRegion != null) {
+                if (StringUtils.isBlank(sentConfigMap.get(S3_ENDPOINT)) && awsRegion != null) {
                     String bucketRegion = Region.fromValue(s3Client.getBucketLocation(s3BucketName)).toAWSRegion().getName();
                     if (!bucketRegion.equals(awsRegion)) {
                         addErrorMessageToConfigObject(configObject, AWS_REGION, String.format("Defined region(%s) is not the same as the bucket region(%s)", awsRegion, bucketRegion));
