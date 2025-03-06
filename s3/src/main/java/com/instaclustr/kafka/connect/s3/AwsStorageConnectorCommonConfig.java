@@ -26,6 +26,7 @@ public class AwsStorageConnectorCommonConfig {
     public static final String AWS_ACCESS_KEY_ID = "aws.accessKeyId";
     public static final String S3_ENDPOINT = "s3.endpoint";
     public static final String AWS_IAM_ROLE_ARN = "aws.role.arn";
+    public static final String S3_ENABLE_PATH_STYLE = "s3.enablePathStyle";
 
     public static final String DEFAULT_AWS_REGION = Regions.DEFAULT_REGION.getName();
 
@@ -40,7 +41,8 @@ public class AwsStorageConnectorCommonConfig {
                 .define(AWS_SECRET_KEY, ConfigDef.Type.PASSWORD, ConfigDef.Importance.HIGH, "AWS access secret key")
                 .define(AWS_REGION, ConfigDef.Type.STRING, DEFAULT_AWS_REGION, ConfigDef.Importance.MEDIUM, String.format("AWS client region, if not set will use %s", DEFAULT_AWS_REGION))
                 .define(AWS_IAM_ROLE_ARN, ConfigDef.Type.STRING, "", ConfigDef.Importance.HIGH, "")
-                .define(S3_ENDPOINT, ConfigDef.Type.STRING, ConfigDef.Importance.MEDIUM, "Optional S3 endpoint URL used to configure non-aws S3 providers");
+                .define(S3_ENDPOINT, ConfigDef.Type.STRING, ConfigDef.Importance.MEDIUM, "Optional, S3 endpoint URL used to make it compatible with certain storage endpoints")
+                .define(S3_ENABLE_PATH_STYLE, ConfigDef.Type.BOOLEAN, ConfigDef.Importance.MEDIUM, "Optional, ensures the bucket name is in the URL path, making it compatible with certain storage endpoints");
         return configDef;
     }
 
