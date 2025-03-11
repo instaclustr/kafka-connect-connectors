@@ -10,6 +10,8 @@ import org.apache.kafka.common.config.Config;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigValue;
 import org.apache.kafka.connect.errors.ConnectException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -29,6 +31,7 @@ public class AwsStorageConnectorCommonConfig {
     public static final String S3_ENABLE_PATH_STYLE = "s3.enablePathStyle";
 
     public static final String DEFAULT_AWS_REGION = Regions.DEFAULT_REGION.getName();
+    private static final Logger logger = LoggerFactory.getLogger(AwsStorageConnectorCommonConfig.class);
 
     private AwsStorageConnectorCommonConfig() {}
 
@@ -95,6 +98,7 @@ public class AwsStorageConnectorCommonConfig {
                     throw new ConnectException(String.format("Unknown Amazon S3 exception while validating config, %s", e.getErrorCode()), e);
             }
         } catch (IllegalArgumentException e) {
+            logger.info("Error whilst validating configurations, {}", e.getMessage());
             addErrorMessageToConfigObject(configObject, AWS_REGION, String.format("The defined aws.region is invalid %s", e.getMessage()));
         }
     }
