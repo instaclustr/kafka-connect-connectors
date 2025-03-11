@@ -14,11 +14,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class AwsStorageSinkConnectorTest extends SinkConnector {
-  private static Logger logger = LoggerFactory.getLogger(AwsStorageSinkConnectorTest.class);
+public class AwsStorageSinkConnector extends SinkConnector {
+  private static Logger logger = LoggerFactory.getLogger(AwsStorageSinkConnector.class);
   private Map<String, String> configMap;
 
-  public AwsStorageSinkConnectorTest() { // do not remove, kafka connect usage
+  public AwsStorageSinkConnector() { // do not remove, kafka connect usage
   }
 
   @Override
