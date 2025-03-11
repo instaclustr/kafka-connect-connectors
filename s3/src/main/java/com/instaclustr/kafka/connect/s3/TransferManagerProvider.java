@@ -65,13 +65,13 @@ public class TransferManagerProvider {
         AmazonS3ClientBuilder clientBuilder = AmazonS3ClientBuilder.standard()
                 .withCredentials(awsCredentialsProvider);
 
-        if (region == null && StringUtils.isBlank(AwsStorageConnectorCommonConfig.S3_ENDPOINT)) {
+        if (region == null && StringUtils.isBlank(endpoint)) {
             region = AwsStorageConnectorCommonConfig.DEFAULT_AWS_REGION;
             clientBuilder.enableForceGlobalBucketAccess();
             log.info("No region defined. Using {} and force global bucket access", AwsStorageConnectorCommonConfig.DEFAULT_AWS_REGION);
         }
 
-        if (StringUtils.isNotBlank(AwsStorageConnectorCommonConfig.S3_ENDPOINT)) {
+        if (StringUtils.isNotBlank(endpoint)) {
             final boolean isPathStyleAccessEnabled =
                     getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.S3_ENABLE_PATH_STYLE) != null &&
                             Boolean.parseBoolean(getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.S3_ENABLE_PATH_STYLE));
