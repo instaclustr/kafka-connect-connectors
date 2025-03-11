@@ -12,13 +12,13 @@
 
     <artifactId>distribution</artifactId>
     <packaging>pom</packaging>
-    <version>0.1.4</version>
+    <version>0.1.5</version>
 
     <dependencies>
         <dependency>
             <groupId>com.instaclustr.kafkaconnect</groupId>
             <artifactId>instaclustr-s3-connector</artifactId>
-            <version>0.1.4</version>
+            <version>0.1.5</version>
         </dependency>
         <dependency>
             <groupId>com.instaclustr.kafkaconnect</groupId>
