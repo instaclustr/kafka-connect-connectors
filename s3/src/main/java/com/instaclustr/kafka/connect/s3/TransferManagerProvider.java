@@ -72,9 +72,7 @@ public class TransferManagerProvider {
         }
 
         if (StringUtils.isNotBlank(endpoint)) {
-            final boolean isPathStyleAccessEnabled =
-                    getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.S3_ENABLE_PATH_STYLE) != null &&
-                            Boolean.parseBoolean(getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.S3_ENABLE_PATH_STYLE));
+            final boolean isPathStyleAccessEnabled = Boolean.parseBoolean(getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.S3_ENABLE_PATH_STYLE));
 
             AwsClientBuilder.EndpointConfiguration endpointConfiguration = new AwsClientBuilder.EndpointConfiguration(endpoint, region);
             clientBuilder.withEndpointConfiguration(endpointConfiguration).withPathStyleAccessEnabled(isPathStyleAccessEnabled);
