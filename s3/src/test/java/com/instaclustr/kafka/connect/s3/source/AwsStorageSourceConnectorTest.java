@@ -48,11 +48,34 @@ public class AwsStorageSourceConnectorTest {
 
 
     @Test
-    public void testValidateEndpointForStoragegrid() {
+    public void testValidConfigForAwsS3() {
+        configMap.put(AwsStorageConnectorCommonConfig.AWS_REGION, "us-east-1");
+
+        AmazonS3 mockS3Client = mock(AmazonS3.class);
+        AmazonS3ClientBuilder mockBuilder = mock(AmazonS3ClientBuilder.class);
+
+        when(mockBuilder.build()).thenReturn(mockS3Client);
+
+        try (MockedStatic<TransferManagerProvider> transferManagerMock = mockStatic(TransferManagerProvider.class)) {
+            transferManagerMock.when(() -> TransferManagerProvider.getS3ClientBuilderWithRegionAndCredentials(any()))
+                    .thenReturn(mockBuilder);
+
+            when(mockS3Client.doesBucketExistV2(anyString())).thenReturn(true);
+
+            Config returnedConfig = connector.validate(configMap);
+            Assert.assertTrue(true);
+            for (final ConfigValue cv : returnedConfig.configValues()) {
+                assertTrue(cv.errorMessages().isEmpty());
+            }
+        }
+    }
+
+
+    @Test
+    public void testValidEndpointForStoragegrid() {
         configMap.put(AwsStorageConnectorCommonConfig.AWS_REGION, "any-non-aws-region");
         configMap.put(AwsStorageConnectorCommonConfig.S3_ENDPOINT, "TestSite.com");
 
-        // Create mocks for AmazonS3 and its builder.
         AmazonS3 mockS3Client = mock(AmazonS3.class);
         AmazonS3ClientBuilder mockBuilder = mock(AmazonS3ClientBuilder.class);
 
@@ -73,7 +96,7 @@ public class AwsStorageSourceConnectorTest {
     }
 
     @Test
-    public void testValidateEndpointForOntapS3() {
+    public void testValidEndpointForOntapS3() {
         configMap.put(AwsStorageConnectorCommonConfig.AWS_REGION, "any-non-aws-region");
         configMap.put(AwsStorageConnectorCommonConfig.S3_ENDPOINT, "TestSite.com");
         configMap.put(AwsStorageConnectorCommonConfig.S3_ENABLE_PATH_STYLE, "true");
