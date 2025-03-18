@@ -5,6 +5,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.transfer.TransferManager;
@@ -17,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class TransferManagerProvider {
     private TransferManager transferManager;
@@ -34,10 +34,11 @@ public class TransferManagerProvider {
     }
 
     public static AmazonS3ClientBuilder getS3ClientBuilderWithRegionAndCredentials(final Map<String, String> config) {
-        String accessKey = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_ACCESS_KEY_ID);
-        String secret = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_SECRET_KEY);
+        final String accessKey = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_ACCESS_KEY_ID);
+        final String secret = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_SECRET_KEY);
         String region = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_REGION);
-        String roleArn = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_IAM_ROLE_ARN);
+        final String roleArn = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.AWS_IAM_ROLE_ARN);
+        final String endpoint = getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.S3_ENDPOINT);
 
         AWSStaticCredentialsProvider awsStaticCredentialsProvider = new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secret));
         AWSCredentialsProvider awsCredentialsProvider;
@@ -64,12 +65,21 @@ public class TransferManagerProvider {
         AmazonS3ClientBuilder clientBuilder = AmazonS3ClientBuilder.standard()
                 .withCredentials(awsCredentialsProvider);
 
-        if (region == null) {
+        if (region == null && StringUtils.isBlank(endpoint)) {
             region = AwsStorageConnectorCommonConfig.DEFAULT_AWS_REGION;
             clientBuilder.enableForceGlobalBucketAccess();
             log.info("No region defined. Using {} and force global bucket access", AwsStorageConnectorCommonConfig.DEFAULT_AWS_REGION);
         }
-        clientBuilder.withRegion(Regions.fromName(region).getName()); //using fromName to validate the region value
+
+        if (StringUtils.isNotBlank(endpoint)) {
+            final boolean isPathStyleAccessEnabled = Boolean.parseBoolean(getFromConfigOrEnvironment(config, AwsStorageConnectorCommonConfig.S3_ENABLE_PATH_STYLE));
+
+            AwsClientBuilder.EndpointConfiguration endpointConfiguration = new AwsClientBuilder.EndpointConfiguration(endpoint, region);
+            clientBuilder.withEndpointConfiguration(endpointConfiguration).withPathStyleAccessEnabled(isPathStyleAccessEnabled);
+        } else {
+            clientBuilder.withRegion(Regions.fromName(region).getName()); //using fromName to validate the region value
+        }
+
         return clientBuilder;
     }
 

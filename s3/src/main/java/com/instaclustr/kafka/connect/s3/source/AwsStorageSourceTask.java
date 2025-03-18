@@ -3,7 +3,6 @@ package com.instaclustr.kafka.connect.s3.source;
 import com.amazonaws.AmazonClientException;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.google.common.util.concurrent.UncheckedTimeoutException;
 import com.instaclustr.kafka.connect.s3.AwsConnectorStringFormats;
 import com.instaclustr.kafka.connect.s3.AwsStorageConnectorCommonConfig;
 import com.instaclustr.kafka.connect.s3.TransferManagerProvider;
