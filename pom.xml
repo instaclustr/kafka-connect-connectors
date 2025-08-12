@@ -12,11 +12,12 @@
     <modules>
         <module>s3</module>
         <module>sla</module>
+        <module>stream</module>
         <module>distribution.xml</module>
     </modules>
 
     <properties>
-        <kafka.version>2.5.1</kafka.version>
+        <kafka.version>3.9.1</kafka.version>
         <junit.version>4.13</junit.version>
         <slf4j.version>1.7.12</slf4j.version>
     </properties>
