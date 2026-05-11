@@ -19,7 +19,7 @@
     <properties>
         <kafka.version>3.9.1</kafka.version>
         <junit.version>4.13</junit.version>
-        <slf4j.version>1.7.12</slf4j.version>
+        <slf4j.version>2.0.17</slf4j.version>
     </properties>
 
     <dependencies>
