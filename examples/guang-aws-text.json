@@ -1,0 +1,21 @@
+{
+	"name" : "<Connector Name>",
+	"config" : {
+		"connector.class" : "StreamSource",
+		"tasks.max" : "1",
+		"topic" : "<Topic Name>",
+		"batch.size" : "10",
+
+		"decoder.type"  : "text",
+		"character.set" : "UTF-8",
+
+		"endpoint.type" : "AwsS3",
+		"access.key.id" : "<Access Key ID>",
+		"access.key" : "<Access Key>",
+		"s3.region" : "<Region>",
+		"s3.bucket.name" : "<Bucket Name>",
+		"s3.url" : "<Provider URL>",
+		"directory" : "<Object Prefix>",
+		"directory.file.discovery.minutes" : "1"
+	}
+}
